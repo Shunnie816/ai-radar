@@ -17,6 +17,8 @@
 - [x] システム設計（docs/design.md）
 - [x] 技術レクチャー（docs/lecture.md）
 - [x] 作業TODOリスト作成（本ファイル）
+- [x] Claude Code プロジェクト設定（.claude/settings.json）
+- [x] gitリポジトリ作成・初回コミット
 
 ---
 
@@ -211,3 +213,4 @@
 | 日付 | 作業内容 |
 |---|---|
 | 2026-05-04 | Phase 0 完了。要件定義・設計・レクチャー作成。外部公開（Firebase App Hosting + サブドメイン）をPhase 8として追加 |
+| 2026-05-05 | gitリポジトリ作成・初回コミット。Phase 0 完全完了 |
