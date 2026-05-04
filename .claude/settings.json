@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run dev)",
+      "Bash(npm run build)",
+      "Bash(npm run lint)",
+      "Bash(npm run test)",
+      "Bash(docker compose up*)",
+      "Bash(docker compose down*)",
+      "Bash(docker compose logs*)",
+      "Bash(firebase deploy*)",
+      "Bash(firebase login*)",
+      "Bash(firebase use*)",
+      "Bash(npx create-next-app*)"
+    ]
+  }
+}
