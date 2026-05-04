@@ -22,29 +22,28 @@
 
 ---
 
-## Phase 1: Firebase セットアップ
+## Phase 1: Firebase セットアップ ✅
 
-- [ ] **1-1.** Firebaseプロジェクト作成
+- [x] **1-1.** Firebaseプロジェクト作成
   - Firebase Console でプロジェクト新規作成
   - プロジェクト名: `ai-radar`
-- [ ] **1-2.** Firestoreデータベース作成
+- [x] **1-2.** Firestoreデータベース作成
   - モード: `production mode`（後でルール設定）
   - リージョン: `asia-northeast1`（東京）
-- [ ] **1-3.** Firestoreセキュリティルール設定
+- [x] **1-3.** Firestoreセキュリティルール設定
   - 読み取り: 公開（外部公開のため全ユーザー許可）
   - 書き込み: 全拒否（n8nはAdmin SDKで書く）
-- [ ] **1-4.** Firestoreインデックス設定
-  - `articles`: `publishedAt DESC` + `source`
-  - `articles`: `publishedAt DESC`（日付フィルタ用）
-- [ ] **1-5.** Firebase Admin SDK用サービスアカウント作成
+- [x] **1-4.** Firestoreインデックス設定
+  - `articles`: `publishedAt DESC` + `source`（複合インデックスのみ作成。単一フィールドは自動）
+- [x] **1-5.** Firebase Admin SDK用サービスアカウント作成
   - Google Cloud Console でサービスアカウント作成
   - ロールは `Cloud Datastore ユーザー` のみ付与（Firebase Admin は不可）
-  - JSON秘密鍵をダウンロード → n8n Credentials に登録（ファイルはGit管理外）
-- [ ] **1-6.** Next.js用Firebaseアプリ設定
+  - JSON秘密鍵をダウンロード → `secrets/` に保管（Git管理外）
+- [x] **1-6.** Next.js用Firebaseアプリ設定
   - Webアプリを追加 → `firebaseConfig` 取得
-- [ ] **1-7.** Firebase App Hosting 有効化
+- [x] **1-7.** Firebase App Hosting 有効化
   - Firebase Console → App Hosting → 新しいバックエンド作成
-  - GitHubリポジトリ接続（後でも可）
+  - GitHubリポジトリ接続済み・ルートディレクトリ: `apps/web`
 
 ---
 
@@ -214,3 +213,4 @@
 |---|---|
 | 2026-05-04 | Phase 0 完了。要件定義・設計・レクチャー作成。外部公開（Firebase App Hosting + サブドメイン）をPhase 8として追加 |
 | 2026-05-05 | gitリポジトリ作成・初回コミット。Phase 0 完全完了 |
+| 2026-05-05 | Phase 1 完了。Firebase プロジェクト・Firestore・App Hosting セットアップ |
