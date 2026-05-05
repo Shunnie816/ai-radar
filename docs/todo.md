@@ -68,7 +68,6 @@
   - 毎日 06:00 JST (21:00 UTC)
 - [ ] **3-2.** RSS Fetchノード作成（各ソース）
   - OpenAI Blog
-  - Anthropic News
   - Google DeepMind Blog
   - Hacker News
   - AWS ML Blog
