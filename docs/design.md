@@ -68,7 +68,7 @@ return [
   { json: { url: 'https://aws.amazon.com/blogs/machine-learning/feed/', source: 'AWS ML Blog' } },
   { json: { url: 'https://cloudblog.withgoogle.com/rss',     source: 'Google Cloud Blog' } },
   { json: { url: 'https://rss.itmedia.co.jp/rss/2.0/aiplus.xml', source: 'ITmedia AI' } },
-  { json: { url: 'https://zenn.dev/feed?topicname=ai',       source: 'Zenn AI' } },
+  { json: { url: 'https://zenn.dev/topics/ai/feed',           source: 'Zenn AI' } },
 ];
 ```
 
