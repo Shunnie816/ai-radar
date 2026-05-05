@@ -47,16 +47,16 @@
 
 ---
 
-## Phase 2: n8n セットアップ
+## Phase 2: n8n セットアップ ✅
 
-- [ ] **2-1.** docker-compose.yml 作成
-- [ ] **2-2.** n8n Docker起動確認
+- [x] **2-1.** docker-compose.yml 作成
+- [x] **2-2.** n8n Docker起動確認
   - `docker-compose up -d`
   - `localhost:5678` でGUIアクセス確認
-- [ ] **2-3.** n8n Credentials 登録
+- [x] **2-3.** n8n Credentials 登録
   - Anthropic API Key
   - Firebase Admin SDK（サービスアカウントJSON）
-- [ ] **2-4.** RSSフィードURLの動作確認
+- [x] **2-4.** RSSフィードURLの動作確認
   - 各ソースのRSS URLが有効か確認
   - 実際に記事が取得できるか検証
 
@@ -213,3 +213,4 @@
 | 2026-05-04 | Phase 0 完了。要件定義・設計・レクチャー作成。外部公開（Firebase App Hosting + サブドメイン）をPhase 8として追加 |
 | 2026-05-05 | gitリポジトリ作成・初回コミット。Phase 0 完全完了 |
 | 2026-05-05 | Phase 1 完了。Firebase プロジェクト・Firestore・App Hosting セットアップ |
+| 2026-05-06 | Phase 2 完了。n8n Docker起動・Credentials登録・RSS URL全確認 |
