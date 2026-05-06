@@ -35,7 +35,7 @@ async function runQuery(body: object): Promise<Record<string, unknown>[]> {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
-    next: { revalidate: 3600 },
+    cache: 'no-store',
   })
   const rows: { document?: { name: string; fields: Record<string, FsValue> } }[] = await res.json()
   return rows
@@ -45,7 +45,7 @@ async function runQuery(body: object): Promise<Record<string, unknown>[]> {
 
 async function getDoc(collection: string, id: string): Promise<Record<string, unknown> | null> {
   const res = await fetch(`${BASE}/${collection}/${id}?key=${API_KEY}`, {
-    next: { revalidate: 3600 },
+    cache: 'no-store',
   })
   if (!res.ok) return null
   const doc: { name: string; fields: Record<string, FsValue> } = await res.json()
@@ -102,6 +102,17 @@ export async function getArticles(filter: ArticleFilter = {}): Promise<Article[]
   if (where.length > 1) query.where = { compositeFilter: { op: 'AND', filters: where } }
   const rows = await runQuery({ structuredQuery: query })
   return rows.map((r) => r as unknown as Article)
+}
+
+export async function getDistinctSources(): Promise<string[]> {
+  const rows = await runQuery({
+    structuredQuery: {
+      from: [{ collectionId: 'articles' }],
+      select: { fields: [{ fieldPath: 'source' }] },
+      limit: 500,
+    },
+  })
+  return [...new Set(rows.map((r) => r.source as string).filter(Boolean))].sort()
 }
 
 export async function getArticle(id: string): Promise<Article | null> {
