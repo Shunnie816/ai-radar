@@ -22,7 +22,7 @@ export default async function HomePage() {
           <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-5">
             <div className="flex items-center justify-between mb-2">
               <span className="font-semibold text-indigo-900">{latest.date}</span>
-              <span className="text-xs text-indigo-400">{new Set(latest.articleIds).size}件</span>
+              <span className="text-xs text-indigo-400">{latest.articleCount}件</span>
             </div>
             <p className="text-sm text-indigo-800 leading-relaxed mb-3">{latest.summary}</p>
             {latest.keyTopics.length > 0 && (

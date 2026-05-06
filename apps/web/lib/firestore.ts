@@ -52,6 +52,13 @@ async function getDoc(collection: string, id: string): Promise<Record<string, un
   return { id: docId(doc.name), ...parseFields(doc.fields) }
 }
 
+// ---- normalization ----
+
+function normalizeDailySummary(raw: DailySummary): DailySummary {
+  const uniqueIds = [...new Set(raw.articleIds)]
+  return { ...raw, articleIds: uniqueIds, articleCount: uniqueIds.length }
+}
+
 // ---- public API ----
 
 export async function getDailySummaries(limitCount = 7): Promise<DailySummary[]> {
@@ -62,13 +69,13 @@ export async function getDailySummaries(limitCount = 7): Promise<DailySummary[]>
       limit: limitCount,
     },
   })
-  return rows.map((r) => r as unknown as DailySummary)
+  return rows.map((r) => normalizeDailySummary(r as unknown as DailySummary))
 }
 
 export async function getDailySummary(date: string): Promise<DailySummary | null> {
   const doc = await getDoc('daily_summaries', date)
   if (!doc) return null
-  return { ...doc, id: date } as unknown as DailySummary
+  return normalizeDailySummary({ ...doc, id: date } as unknown as DailySummary)
 }
 
 export interface ArticleFilter {
