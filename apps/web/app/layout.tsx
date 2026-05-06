@@ -12,8 +12,6 @@ export const metadata: Metadata = {
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const todayJst = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10)
-
   return (
     <html lang="ja" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-gray-50">
@@ -24,12 +22,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </Link>
             <nav className="flex items-center gap-4 text-sm text-gray-600">
               <Link href="/articles" className="hover:text-gray-900 transition-colors">記事一覧</Link>
-              <Link
-                href={`/daily/${todayJst}`}
-                className="px-3 py-1 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors font-medium"
-              >
-                今日
-              </Link>
             </nav>
           </div>
         </header>

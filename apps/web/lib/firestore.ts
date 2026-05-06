@@ -86,22 +86,17 @@ export interface ArticleFilter {
 
 export async function getArticles(filter: ArticleFilter = {}): Promise<Article[]> {
   const { source, importance, limitCount = 50 } = filter
-  const where = []
-  if (source) {
-    where.push({ fieldFilter: { field: { fieldPath: 'source' }, op: 'EQUAL', value: { stringValue: source } } })
-  }
-  if (importance) {
-    where.push({ fieldFilter: { field: { fieldPath: 'importance' }, op: 'EQUAL', value: { stringValue: importance } } })
-  }
-  const query: Record<string, unknown> = {
-    from: [{ collectionId: 'articles' }],
-    orderBy: [{ field: { fieldPath: 'createdAt' }, direction: 'DESCENDING' }],
-    limit: limitCount,
-  }
-  if (where.length === 1) query.where = where[0]
-  if (where.length > 1) query.where = { compositeFilter: { op: 'AND', filters: where } }
-  const rows = await runQuery({ structuredQuery: query })
-  return rows.map((r) => r as unknown as Article)
+  const rows = await runQuery({
+    structuredQuery: {
+      from: [{ collectionId: 'articles' }],
+      orderBy: [{ field: { fieldPath: 'createdAt' }, direction: 'DESCENDING' }],
+      limit: limitCount,
+    },
+  })
+  let articles = rows.map((r) => r as unknown as Article)
+  if (source) articles = articles.filter((a) => a.source === source)
+  if (importance) articles = articles.filter((a) => a.importance === importance)
+  return articles
 }
 
 export async function getDistinctSources(): Promise<string[]> {
