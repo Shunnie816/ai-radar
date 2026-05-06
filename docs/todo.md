@@ -103,39 +103,21 @@
 
 ---
 
-## Phase 5: Next.js アプリ構築
+## Phase 5: Next.js アプリ構築 ✅
 
-- [ ] **5-1.** Next.js プロジェクト初期化
-  ```
-  cd apps && npx create-next-app@16 web
-  ```
-  - TypeScript: Yes
-  - Tailwind CSS: Yes
-  - App Router: Yes
-- [ ] **5-2.** Firebase SDK インストール・設定
-  - `npm install firebase`
-  - `lib/firebase.ts` 作成
-- [ ] **5-3.** 共通型定義 `lib/types.ts` 作成
-- [ ] **5-4.** API Routes 実装
+- [x] **5-1.** Next.js プロジェクト初期化（16.2.4 / App Router / TypeScript / Tailwind）
+- [x] **5-2.** Firestore REST API 接続設定（Client SDK は Server Component 非対応のため REST API に変更）
+- [x] **5-3.** 共通型定義 `lib/types.ts` 作成
+- [x] **5-4.** API Routes 実装
   - `GET /api/summaries` - 日次要約一覧
   - `GET /api/summaries/[date]` - 特定日の要約
   - `GET /api/articles` - 記事一覧（フィルタ対応）
   - `GET /api/articles/[id]` - 記事詳細
-- [ ] **5-5.** ダッシュボードページ実装 (`/`)
-  - 最新の日次要約
-  - 重要記事3件
-  - 過去7日分へのリンク
-- [ ] **5-6.** 日次サマリーページ実装 (`/daily/[date]`)
-  - その日のトレンド要約
-  - 記事一覧
-- [ ] **5-7.** 記事一覧ページ実装 (`/articles`)
-  - ソース・タグ・重要度フィルタ
-- [ ] **5-8.** 記事詳細ページ実装 (`/articles/[id]`)
-  - 原文リンク + AI要約
-- [ ] **5-9.** 共通コンポーネント作成
-  - `DailySummaryCard`
-  - `ArticleCard`
-  - `TagBadge`
+- [x] **5-5.** ダッシュボードページ実装 (`/`)
+- [x] **5-6.** 日次サマリーページ実装 (`/daily/[date]`)
+- [x] **5-7.** 記事一覧ページ実装 (`/articles`)
+- [x] **5-8.** 記事詳細ページ実装 (`/articles/[id]`)
+- [x] **5-9.** 共通コンポーネント作成（DailySummaryCard / ArticleCard / TagBadge）
 
 ---
 
@@ -216,3 +198,4 @@
 | 2026-05-06 | Phase 2 完了。n8n Docker起動・Credentials登録・RSS URL全確認 |
 | 2026-05-06 | Phase 3 完了。n8n ワークフロー実装（15ノード）。Firestore REST API経由で記事保存・日次サマリー生成を確認 |
 | 2026-05-06 | Phase 4 完了（4-5除く）。手動実行・Firestore保存・日次要約・重複チェックすべて動作確認 |
+| 2026-05-06 | Phase 5 完了。Next.js 16.2.4 アプリ構築。Firestore REST API 接続。4ページ + 3コンポーネント実装・動作確認 |
