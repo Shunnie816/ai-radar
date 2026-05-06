@@ -37,3 +37,6 @@ Thumbs.db
 
 # Serena MCP
 .serena/
+
+# Playwright MCP
+.playwright-mcp/
