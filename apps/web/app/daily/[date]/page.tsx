@@ -19,7 +19,7 @@ export default async function DailyPage({ params }: { params: Promise<{ date: st
       </Link>
 
       <h1 className="text-xl font-bold text-gray-900 mb-1">{summary.date} のトレンド</h1>
-      <p className="text-xs text-gray-400 mb-4">{summary.articleCount}件</p>
+      <p className="text-xs text-gray-400 mb-4">{new Set(summary.articleIds).size}件</p>
 
       <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-5 mb-6">
         <p className="text-sm text-indigo-800 leading-relaxed mb-3">{summary.summary}</p>

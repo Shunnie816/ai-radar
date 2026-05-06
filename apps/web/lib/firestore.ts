@@ -104,7 +104,8 @@ export async function getArticle(id: string): Promise<Article | null> {
 }
 
 export async function getArticlesByIds(ids: string[]): Promise<Article[]> {
-  if (ids.length === 0) return []
-  const docs = await Promise.all(ids.map((id) => getDoc('articles', id)))
+  const uniqueIds = [...new Set(ids)]
+  if (uniqueIds.length === 0) return []
+  const docs = await Promise.all(uniqueIds.map((id) => getDoc('articles', id)))
   return docs.filter(Boolean).map((d) => d as unknown as Article)
 }
