@@ -12,6 +12,11 @@ type FsValue =
   | { arrayValue: { values?: FsValue[] } }
   | { mapValue: { fields: Record<string, FsValue> } }
 
+type FetchCache =
+  | { cache: 'no-store' }
+  | { cache: 'force-cache' }
+  | { next: { revalidate: number } }
+
 function parseValue(v: FsValue): unknown {
   if ('stringValue' in v) return v.stringValue
   if ('integerValue' in v) return Number(v.integerValue)
@@ -30,12 +35,12 @@ function docId(name: string): string {
   return name.split('/').pop() ?? ''
 }
 
-async function runQuery(body: object): Promise<Record<string, unknown>[]> {
+async function runQuery(body: object, fetchCache: FetchCache): Promise<Record<string, unknown>[]> {
   const res = await fetch(`${BASE}:runQuery?key=${API_KEY}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
-    cache: 'no-store',
+    ...fetchCache,
   })
   const rows: { document?: { name: string; fields: Record<string, FsValue> } }[] = await res.json()
   return rows
@@ -43,10 +48,8 @@ async function runQuery(body: object): Promise<Record<string, unknown>[]> {
     .map((r) => ({ id: docId(r.document!.name), ...parseFields(r.document!.fields) }))
 }
 
-async function getDoc(collection: string, id: string): Promise<Record<string, unknown> | null> {
-  const res = await fetch(`${BASE}/${collection}/${id}?key=${API_KEY}`, {
-    cache: 'no-store',
-  })
+async function getDoc(collection: string, id: string, fetchCache: FetchCache): Promise<Record<string, unknown> | null> {
+  const res = await fetch(`${BASE}/${collection}/${id}?key=${API_KEY}`, fetchCache)
   if (!res.ok) return null
   const doc: { name: string; fields: Record<string, FsValue> } = await res.json()
   return { id: docId(doc.name), ...parseFields(doc.fields) }
@@ -61,19 +64,24 @@ function normalizeDailySummary(raw: DailySummary): DailySummary {
 
 // ---- public API ----
 
+// ダッシュボード専用：バッチ実行後すぐ反映させるため常に最新を取得
 export async function getDailySummaries(limitCount = 7): Promise<DailySummary[]> {
-  const rows = await runQuery({
-    structuredQuery: {
-      from: [{ collectionId: 'daily_summaries' }],
-      orderBy: [{ field: { fieldPath: 'date' }, direction: 'DESCENDING' }],
-      limit: limitCount,
+  const rows = await runQuery(
+    {
+      structuredQuery: {
+        from: [{ collectionId: 'daily_summaries' }],
+        orderBy: [{ field: { fieldPath: 'date' }, direction: 'DESCENDING' }],
+        limit: limitCount,
+      },
     },
-  })
+    { cache: 'no-store' },
+  )
   return rows.map((r) => normalizeDailySummary(r as unknown as DailySummary))
 }
 
+// 過去日のデータは変化しないため24時間キャッシュ
 export async function getDailySummary(date: string): Promise<DailySummary | null> {
-  const doc = await getDoc('daily_summaries', date)
+  const doc = await getDoc('daily_summaries', date, { next: { revalidate: 86400 } })
   if (!doc) return null
   return normalizeDailySummary({ ...doc, id: date } as unknown as DailySummary)
 }
@@ -84,41 +92,51 @@ export interface ArticleFilter {
   limitCount?: number
 }
 
+// 記事一覧は1時間キャッシュ（日次バッチで十分）
 export async function getArticles(filter: ArticleFilter = {}): Promise<Article[]> {
   const { source, importance, limitCount = 50 } = filter
-  const rows = await runQuery({
-    structuredQuery: {
-      from: [{ collectionId: 'articles' }],
-      orderBy: [{ field: { fieldPath: 'createdAt' }, direction: 'DESCENDING' }],
-      limit: limitCount,
+  const rows = await runQuery(
+    {
+      structuredQuery: {
+        from: [{ collectionId: 'articles' }],
+        orderBy: [{ field: { fieldPath: 'createdAt' }, direction: 'DESCENDING' }],
+        limit: limitCount,
+      },
     },
-  })
+    { next: { revalidate: 3600 } },
+  )
   let articles = rows.map((r) => r as unknown as Article)
   if (source) articles = articles.filter((a) => a.source === source)
   if (importance) articles = articles.filter((a) => a.importance === importance)
   return articles
 }
 
+// ソース一覧は記事一覧と同じ周期でキャッシュ
 export async function getDistinctSources(): Promise<string[]> {
-  const rows = await runQuery({
-    structuredQuery: {
-      from: [{ collectionId: 'articles' }],
-      select: { fields: [{ fieldPath: 'source' }] },
-      limit: 500,
+  const rows = await runQuery(
+    {
+      structuredQuery: {
+        from: [{ collectionId: 'articles' }],
+        select: { fields: [{ fieldPath: 'source' }] },
+        limit: 500,
+      },
     },
-  })
+    { next: { revalidate: 3600 } },
+  )
   return [...new Set(rows.map((r) => r.source as string).filter(Boolean))].sort()
 }
 
+// 記事詳細は保存後に変化しないため永続キャッシュ
 export async function getArticle(id: string): Promise<Article | null> {
-  const doc = await getDoc('articles', id)
+  const doc = await getDoc('articles', id, { cache: 'force-cache' })
   if (!doc) return null
   return { ...doc, id } as unknown as Article
 }
 
+// 日次ページの記事は24時間キャッシュ（過去データは不変）
 export async function getArticlesByIds(ids: string[]): Promise<Article[]> {
   const uniqueIds = [...new Set(ids)]
   if (uniqueIds.length === 0) return []
-  const docs = await Promise.all(uniqueIds.map((id) => getDoc('articles', id)))
+  const docs = await Promise.all(uniqueIds.map((id) => getDoc('articles', id, { next: { revalidate: 86400 } })))
   return docs.filter(Boolean).map((d) => d as unknown as Article)
 }
