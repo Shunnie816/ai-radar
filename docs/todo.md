@@ -141,21 +141,21 @@
 ## Phase 8: 外部公開
 
 ### 8-1. GitHubリポジトリ準備
-- [ ] GitHubリポジトリ作成・初回push
-- [ ] `.gitignore` で秘密情報を除外
+- [x] GitHubリポジトリ作成・初回push
+- [x] `.gitignore` で秘密情報を除外
   - `.env.local`
   - `*.json`（サービスアカウントキー）
   - `n8n/` 内の認証情報ファイル
 
 ### 8-2. Firebase App Hosting デプロイ
-- [ ] `apps/web/apphosting.yaml` 作成
-- [ ] Firebase App Hosting とGitHubリポジトリを接続
-- [ ] 環境変数を Firebase App Hosting コンソールに設定
+- [x] `apps/web/apphosting.yaml` 作成
+- [x] Firebase App Hosting とGitHubリポジトリを接続
+- [x] 環境変数を Firebase App Hosting コンソールに設定
   - `NEXT_PUBLIC_FIREBASE_API_KEY`
   - `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`
   - `NEXT_PUBLIC_FIREBASE_PROJECT_ID`
   - `NEXT_PUBLIC_FIREBASE_APP_ID`
-- [ ] main ブランチ push → 自動デプロイ確認
+- [x] main ブランチ push → 自動デプロイ確認
 
 ### 8-3. カスタムドメイン設定
 - [ ] Firebase Console → App Hosting → カスタムドメイン追加
@@ -175,6 +175,22 @@
 - [ ] サブドメインで全ページの表示確認
 - [ ] Firestoreセキュリティルールが正しく機能しているか確認
 - [ ] n8nの定期実行がVPSで動いているか確認
+
+---
+
+## Phase 9: Cloud Functions 移行（n8n 廃止）
+
+- [x] **9-0.** v0.0.0 タグ作成（n8n ベース MVP を GitHub pre-release で保全）
+- [x] **9-1.** Cloud Functions プロジェクト初期化（`functions/` ディレクトリ・TypeScript）
+- [x] **9-2.** ワークフロー実装（`functions/src/index.ts`）
+  - RSS 取得・重複チェック・Claude API 要約・Firestore 保存・日次要約生成
+  - `onSchedule("0 21 * * *")` で Cloud Scheduler 内包
+- [ ] **9-3.** ANTHROPIC_API_KEY を Secret Manager に登録
+- [ ] **9-4.** Cloud Functions デプロイ（`firebase deploy --only functions`）
+- [ ] **9-5.** 手動実行で動作確認（Firestore にデータ保存されるか）
+- [ ] **9-6.** 翌日の自動実行確認
+- [ ] **9-7.** n8n 関連ファイルの整理（docker-compose.yml・n8n/ ディレクトリ）
+- [ ] **9-8.** 設計書更新（design.md をCloud Functions 構成に書き換え）
 
 ---
 
@@ -200,3 +216,5 @@
 | 2026-05-06 | Phase 4 完了（4-5除く）。手動実行・Firestore保存・日次要約・重複チェックすべて動作確認 |
 | 2026-05-06 | Phase 5 完了。Next.js 16.2.4 アプリ構築。Firestore REST API 接続。4ページ + 3コンポーネント実装・動作確認 |
 | 2026-05-07〜10 | Phase 6 完了。n8n→Firestore→Next.js 全フロー確認。プロンプト改善・重複排除・フィルタ修正・キャッシュ戦略整理・Firestoreインデックス一元管理 |
+| 2026-05-10 | Phase 8-1・8-2 完了。GitHub接続・apphosting.yaml・環境変数設定・main push → 自動デプロイ確認済み。ローカルブランチ整理（main のみ残存）|
+| 2026-05-10 | Phase 9 開始。v0.0.0 pre-release 作成。n8n → Cloud Functions 移行計画策定。functions/ ディレクトリ・TypeScript 実装完了（型チェック通過）|

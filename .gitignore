@@ -20,6 +20,10 @@ secrets/
 n8n/credentials/
 n8n/.env
 
+# Cloud Functions
+functions/lib/
+functions/node_modules/
+
 # Secrets
 *.pem
 *.key
