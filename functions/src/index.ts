@@ -99,7 +99,7 @@ async function summarizeArticle(article: Article): Promise<ArticleSummary | null
       messages: [{ role: "user", content: userContent }],
     });
     const text = response.content[0].type === "text" ? response.content[0].text : "";
-    return JSON.parse(text) as ArticleSummary;
+    return JSON.parse(extractJson(text)) as ArticleSummary;
   } catch (e) {
     logger.warn(`summarizeArticle failed for "${article.title}"`, e);
     return null;
@@ -135,7 +135,7 @@ ${articleList}
       ],
     });
     const text = response.content[0].type === "text" ? response.content[0].text : "";
-    return JSON.parse(text) as { summary: string; keyTopics: string[] };
+    return JSON.parse(extractJson(text)) as { summary: string; keyTopics: string[] };
   } catch (e) {
     logger.warn("generateDailySummary failed", e);
     return null;
@@ -207,6 +207,12 @@ function getTodayJst(): string {
 }
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function extractJson(text: string): string {
+  const match = text.match(/\{[\s\S]*\}/);
+  if (!match) throw new SyntaxError("No JSON object found in response");
+  return match[0];
+}
 
 // Claude API rate limit: 50 req/min → 1.5s interval で ~40 req/min に抑える
 async function summarizeArticlesSequentially(
