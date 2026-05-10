@@ -16,9 +16,9 @@ service-account*.json
 firebase-adminsdk*.json
 secrets/
 
-# n8n
-n8n/credentials/
-n8n/.env
+# Cloud Functions
+functions/lib/
+functions/node_modules/
 
 # Secrets
 *.pem
