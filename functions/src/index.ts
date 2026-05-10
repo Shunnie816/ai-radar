@@ -206,6 +206,20 @@ function getTodayJst(): string {
   return new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Tokyo" });
 }
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// Claude API rate limit: 50 req/min → 1.5s interval で ~40 req/min に抑える
+async function summarizeArticlesSequentially(
+  articles: Article[]
+): Promise<(ArticleSummary | null)[]> {
+  const results: (ArticleSummary | null)[] = [];
+  for (let i = 0; i < articles.length; i++) {
+    results.push(await summarizeArticle(articles[i]));
+    if (i < articles.length - 1) await sleep(1500);
+  }
+  return results;
+}
+
 // ─── メイン関数 ───────────────────────────────────────────────────────────────
 
 export const dailyFeed = onSchedule(
@@ -233,9 +247,9 @@ export const dailyFeed = onSchedule(
       return;
     }
 
-    // 3. 記事単体要約（並列実行・最大50件）
+    // 3. 記事単体要約（逐次実行・最大50件）
     const targets = newArticles.slice(0, 50);
-    const summaries = await Promise.all(targets.map(summarizeArticle));
+    const summaries = await summarizeArticlesSequentially(targets);
 
     // 4. Firestore 保存
     const savedArticles = await saveArticles(targets, summaries);
