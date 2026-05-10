@@ -1,0 +1,31 @@
+runConfig:
+  minInstances: 0
+  maxInstances: 10
+  concurrency: 100
+  cpu: 1
+  memoryMiB: 512
+
+env:
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    value: AIzaSyCd5BsAjiozrHRPDrPQcHTYuEQ9MccjXQ4
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: ai-radar-92cf1.firebaseapp.com
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: ai-radar-92cf1
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    value: 1:850097677034:web:e355190b5b40b1f8ccad93
+    availability:
+      - BUILD
+      - RUNTIME

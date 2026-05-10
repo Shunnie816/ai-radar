@@ -1,0 +1,304 @@
+{
+  "name": "AI Radar - Daily Feed",
+  "nodes": [
+    {
+      "id": "n1",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [0, 300],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 21 * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "n2",
+      "name": "Code: RSS Sources",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 300],
+      "parameters": {
+        "jsCode": "return [\n  { json: { url: 'https://openai.com/news/rss.xml',                     source: 'OpenAI Blog' } },\n  { json: { url: 'https://deepmind.google/blog/rss.xml',               source: 'Google DeepMind' } },\n  { json: { url: 'https://news.ycombinator.com/rss',                   source: 'Hacker News' } },\n  { json: { url: 'https://aws.amazon.com/blogs/machine-learning/feed/', source: 'AWS ML Blog' } },\n  { json: { url: 'https://cloudblog.withgoogle.com/rss',               source: 'Google Cloud Blog' } },\n  { json: { url: 'https://rss.itmedia.co.jp/rss/2.0/aiplus.xml',       source: 'ITmedia AI' } },\n  { json: { url: 'https://zenn.dev/topics/ai/feed',                    source: 'Zenn AI' } },\n];"
+      }
+    },
+    {
+      "id": "n3",
+      "name": "RSS Read",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [440, 300],
+      "parameters": {
+        "url": "={{ $json.url }}"
+      }
+    },
+    {
+      "id": "n4",
+      "name": "Code: Normalize",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 300],
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst sourceData = $('Code: RSS Sources').all();\n\n// Yesterday in JST (UTC+9)\nconst jstOffset = 9 * 60 * 60 * 1000;\nconst nowJst = new Date(Date.now() + jstOffset);\nconst y = new Date(nowJst);\ny.setUTCDate(y.getUTCDate() - 1);\nconst startUtc = new Date(Date.UTC(y.getUTCFullYear(), y.getUTCMonth(), y.getUTCDate()) - jstOffset);\nconst endUtc = new Date(startUtc.getTime() + 86400000);\n\nreturn items\n  .filter(item => {\n    const pub = new Date(item.json.pubDate || item.json.isoDate || '');\n    return pub >= startUtc && pub < endUtc;\n  })\n  .map(item => {\n    const idx = typeof item.pairedItem === 'number'\n      ? item.pairedItem\n      : (item.pairedItem?.item ?? 0);\n    const source = sourceData[idx]?.json?.source ?? 'Unknown';\n    return {\n      json: {\n        title:       item.json.title ?? '',\n        url:         item.json.link  ?? item.json.url ?? '',\n        source,\n        publishedAt: item.json.pubDate || item.json.isoDate || '',\n        rawContent:  item.json.contentSnippet || item.json.content || item.json.description || '',\n      }\n    };\n  });"
+      }
+    },
+    {
+      "id": "n5",
+      "name": "Split In Batches",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [880, 300],
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      }
+    },
+    {
+      "id": "n6",
+      "name": "HTTP: Firestore Check URL",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1100, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://firestore.googleapis.com/v1/projects/ai-radar-92cf1/databases/(default)/documents:runQuery",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "Google Service Account API",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ structuredQuery: { from: [{ collectionId: 'articles' }], where: { fieldFilter: { field: { fieldPath: 'url' }, op: 'EQUAL', value: { stringValue: $json.url } } }, limit: 1 } }) }}"
+      }
+    },
+    {
+      "id": "n7",
+      "name": "IF: Duplicate",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1320, 300],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "dup-check",
+              "leftValue": "={{ $json.document }}",
+              "operator": {
+                "type": "object",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "n8",
+      "name": "HTTP: Claude Summary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1540, 420],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1024, system: 'AI記事要約アシスタント。JSON形式のみで出力。', messages: [{ role: 'user', content: 'タイトル:' + $('Split In Batches').item.json.title + '\\n内容:' + $('Split In Batches').item.json.rawContent + '\\n\\n以下のJSON形式のみで出力:\\n{\"what\":\"何が起きたか(1-2文)\",\"why\":\"なぜ重要か(1-2文)\",\"who\":\"誰に影響(1文)\",\"importance\":\"high=新モデルリリース・業界転換点・重大発表 / medium=機能追加・事例・パートナーシップ / low=解説・一般論・マイナー更新\",\"tags\":[\"短いキーワード\"]}' }] }) }}"
+      }
+    },
+    {
+      "id": "n9",
+      "name": "Code: Parse Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1760, 420],
+      "parameters": {
+        "jsCode": "const claudeRes = $input.first().json;\nconst article  = $('Split In Batches').item.json;\n\nconst text = claudeRes.content?.[0]?.text ?? '';\nlet parsed = {};\ntry {\n  const m = text.match(/\\{[\\s\\S]*\\}/);\n  if (m) parsed = JSON.parse(m[0]);\n} catch (_) {}\n\nreturn [{\n  json: {\n    title:       article.title,\n    url:         article.url,\n    source:      article.source,\n    publishedAt: article.publishedAt,\n    rawContent:  article.rawContent,\n    summary:     [parsed.what, parsed.why, parsed.who].filter(Boolean).join(' '),\n    importance:  parsed.importance ?? 'medium',\n    tags:        Array.isArray(parsed.tags) ? parsed.tags : [],\n    createdAt:   new Date().toISOString(),\n  }\n}];"
+      }
+    },
+    {
+      "id": "n10",
+      "name": "HTTP: Firestore Save Article",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1980, 420],
+      "parameters": {
+        "method": "POST",
+        "url": "https://firestore.googleapis.com/v1/projects/ai-radar-92cf1/databases/(default)/documents/articles",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleServiceAccountApi",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ fields: { title: { stringValue: $json.title }, url: { stringValue: $json.url }, source: { stringValue: $json.source }, publishedAt: { timestampValue: new Date($json.publishedAt || Date.now()).toISOString() }, rawContent: { stringValue: $json.rawContent }, summary: { stringValue: $json.summary }, importance: { stringValue: $json.importance }, tags: { arrayValue: { values: $json.tags.map(t => ({ stringValue: t })) } }, createdAt: { timestampValue: $json.createdAt } } }) }}"
+      }
+    },
+    {
+      "id": "n11",
+      "name": "HTTP: Firestore Get Today Articles",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1100, 120],
+      "parameters": {
+        "method": "POST",
+        "url": "https://firestore.googleapis.com/v1/projects/ai-radar-92cf1/databases/(default)/documents:runQuery",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleServiceAccountApi",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ structuredQuery: { from: [{ collectionId: 'articles' }], where: { fieldFilter: { field: { fieldPath: 'createdAt' }, op: 'GREATER_THAN_OR_EQUAL', value: { timestampValue: new Date(Date.now() - 7200000).toISOString() } } }, orderBy: [{ field: { fieldPath: 'createdAt' }, direction: 'DESCENDING' }], limit: 100 } }) }}"
+      }
+    },
+    {
+      "id": "n12",
+      "name": "Code: Daily Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1320, 120],
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst seen = new Set();\nconst articles = items\n  .filter(item => item.json.document)\n  .map(item => {\n    const f = item.json.document.fields;\n    return {\n      title:      f.title?.stringValue ?? '',\n      source:     f.source?.stringValue ?? '',\n      summary:    f.summary?.stringValue ?? '',\n      importance: f.importance?.stringValue ?? 'medium',\n      docId:      item.json.document.name.split('/').pop(),\n    };\n  })\n  .filter(a => {\n    if (seen.has(a.docId)) return false;\n    seen.add(a.docId);\n    return true;\n  });\nif (articles.length === 0) return [];\nconst jstOffset = 9 * 60 * 60 * 1000;\nconst nowJst = new Date(Date.now() + jstOffset);\nconst yJst = new Date(nowJst);\nyJst.setUTCDate(yJst.getUTCDate() - 1);\nconst dd = d => String(d).padStart(2, '0');\nconst dateId = yJst.getUTCFullYear() + '-' + dd(yJst.getUTCMonth() + 1) + '-' + dd(yJst.getUTCDate());\nconst list = articles.map((a, i) => (i + 1) + '. [' + a.importance + '] ' + a.title + ' (' + a.source + '): ' + a.summary).join('\\n');\nconst prompt = '今日収集した' + articles.length + '件のAI記事のトレンドを分析してください。\\n\\n記事:\\n' + list + '\\n\\nJSONのみで出力:\\n{\"summary\":\"トレンドの方向性(200字以内)\",\"keyTopics\":[\"10字以内のキーワードを3〜5個\"]}\\n\\nkeyTopicsは「GPT-5.5」「エージェント」「企業向けAI」のような短いキーワードにすること。文章にしないこと。';\nreturn [{ json: { dateId, articleCount: articles.length, articleIds: articles.map(a => a.docId), prompt } }];"
+      }
+    },
+    {
+      "id": "n13",
+      "name": "HTTP: Claude Daily",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1540, 120],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1024, system: 'AI記事トレンド分析アシスタント。JSON形式のみで出力。', messages: [{ role: 'user', content: $json.prompt }] }) }}"
+      }
+    },
+    {
+      "id": "n14",
+      "name": "Code: Parse Daily",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1760, 120],
+      "parameters": {
+        "jsCode": "const claudeRes = $input.first().json;\nconst meta = $('Code: Daily Prompt').item.json;\nconst text = claudeRes.content?.[0]?.text ?? '';\nlet parsed = {};\ntry {\n  const m = text.match(/\\{[\\s\\S]*\\}/);\n  if (m) parsed = JSON.parse(m[0]);\n} catch (_) {}\nreturn [{ json: { dateId: meta.dateId, date: meta.dateId, summary: parsed.summary ?? '', keyTopics: Array.isArray(parsed.keyTopics) ? parsed.keyTopics : [], articleCount: meta.articleCount, articleIds: meta.articleIds ?? [], createdAt: new Date().toISOString() } }];"
+      }
+    },
+    {
+      "id": "n15",
+      "name": "HTTP: Firestore Save Daily",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1980, 120],
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ 'https://firestore.googleapis.com/v1/projects/ai-radar-92cf1/databases/(default)/documents/daily_summaries/' + $json.dateId }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleServiceAccountApi",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ fields: { date: { stringValue: $json.date }, summary: { stringValue: $json.summary }, keyTopics: { arrayValue: { values: $json.keyTopics.map(t => ({ stringValue: t })) } }, articleCount: { integerValue: String($json.articleCount) }, articleIds: { arrayValue: { values: $json.articleIds.map(id => ({ stringValue: id })) } }, createdAt: { timestampValue: $json.createdAt } } }) }}"
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [[{ "node": "Code: RSS Sources", "type": "main", "index": 0 }]]
+    },
+    "Code: RSS Sources": {
+      "main": [[{ "node": "RSS Read", "type": "main", "index": 0 }]]
+    },
+    "RSS Read": {
+      "main": [[{ "node": "Code: Normalize", "type": "main", "index": 0 }]]
+    },
+    "Code: Normalize": {
+      "main": [[{ "node": "Split In Batches", "type": "main", "index": 0 }]]
+    },
+    "Split In Batches": {
+      "main": [
+        [
+          {
+            "node": "HTTP: Firestore Get Today Articles",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [{ "node": "HTTP: Firestore Check URL", "type": "main", "index": 0 }]
+      ]
+    },
+    "HTTP: Firestore Check URL": {
+      "main": [[{ "node": "IF: Duplicate", "type": "main", "index": 0 }]]
+    },
+    "IF: Duplicate": {
+      "main": [
+        [],
+        [{ "node": "HTTP: Claude Summary", "type": "main", "index": 0 }]
+      ]
+    },
+    "HTTP: Claude Summary": {
+      "main": [[{ "node": "Code: Parse Summary", "type": "main", "index": 0 }]]
+    },
+    "Code: Parse Summary": {
+      "main": [
+        [{ "node": "HTTP: Firestore Save Article", "type": "main", "index": 0 }]
+      ]
+    },
+    "HTTP: Firestore Save Article": {
+      "main": [[{ "node": "Split In Batches", "type": "main", "index": 0 }]]
+    },
+    "HTTP: Firestore Get Today Articles": {
+      "main": [[{ "node": "Code: Daily Prompt", "type": "main", "index": 0 }]]
+    },
+    "Code: Daily Prompt": {
+      "main": [[{ "node": "HTTP: Claude Daily", "type": "main", "index": 0 }]]
+    },
+    "HTTP: Claude Daily": {
+      "main": [[{ "node": "Code: Parse Daily", "type": "main", "index": 0 }]]
+    },
+    "Code: Parse Daily": {
+      "main": [
+        [{ "node": "HTTP: Firestore Save Daily", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

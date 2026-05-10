@@ -62,14 +62,13 @@ Cron Trigger
 ```javascript
 // Code ノードの内容（RSSソース定義）
 return [
-  { json: { url: 'https://openai.com/blog/rss.xml',         source: 'OpenAI Blog' } },
-  { json: { url: 'https://www.anthropic.com/rss.xml',        source: 'Anthropic News' } },
+  { json: { url: 'https://openai.com/news/rss.xml',          source: 'OpenAI Blog' } },
   { json: { url: 'https://deepmind.google/blog/rss.xml',     source: 'Google DeepMind' } },
   { json: { url: 'https://news.ycombinator.com/rss',         source: 'Hacker News' } },
   { json: { url: 'https://aws.amazon.com/blogs/machine-learning/feed/', source: 'AWS ML Blog' } },
-  { json: { url: 'https://cloud.google.com/blog/rss/',       source: 'Google Cloud Blog' } },
+  { json: { url: 'https://cloudblog.withgoogle.com/rss',     source: 'Google Cloud Blog' } },
   { json: { url: 'https://rss.itmedia.co.jp/rss/2.0/aiplus.xml', source: 'ITmedia AI' } },
-  { json: { url: 'https://zenn.dev/feed?topicname=ai',       source: 'Zenn AI' } },
+  { json: { url: 'https://zenn.dev/topics/ai/feed',           source: 'Zenn AI' } },
 ];
 ```
 

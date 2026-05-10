@@ -25,3 +25,12 @@ ai-radar/
 
 - [要件定義](docs/requirements.md)
 - [システム設計](docs/design.md)
+
+## Git運用ルール
+
+- 作業はブランチを切って進める（main / develop で直接作業しない）
+- ブランチの粒度はPhaseごと、もしくは大きな作業まとまりごと
+- ブランチ命名規則: `feature/phase-N-description`（例: `feature/phase-2-n8n`）
+- ブランチ戦略:
+  - `feature/*` → `develop`（Phase完了時にPR）
+  - `develop` → `main`（動作確認済みのタイミングでPR）
