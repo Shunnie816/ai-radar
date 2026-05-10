@@ -15,6 +15,14 @@
         { "fieldPath": "source", "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "articles",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "publishedAt", "order": "DESCENDING" },
+        { "fieldPath": "source", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []
