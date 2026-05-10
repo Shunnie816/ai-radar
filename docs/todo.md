@@ -187,10 +187,10 @@
   - `onSchedule("0 21 * * *")` で Cloud Scheduler 内包
 - [ ] **9-3.** ANTHROPIC_API_KEY を Secret Manager に登録
 - [ ] **9-4.** Cloud Functions デプロイ（`firebase deploy --only functions`）
-- [ ] **9-5.** 手動実行で動作確認（Firestore にデータ保存されるか）
-- [ ] **9-6.** 翌日の自動実行確認
-- [ ] **9-7.** n8n 関連ファイルの整理（docker-compose.yml・n8n/ ディレクトリ）
-- [ ] **9-8.** 設計書更新（design.md をCloud Functions 構成に書き換え）
+- [x] **9-5.** 手動実行で動作確認（Firestore にデータ保存されるか）
+- [x] **9-6.** 翌日の自動実行確認
+- [x] **9-7.** n8n 関連ファイルの整理（docker-compose.yml・n8n/ ディレクトリ削除）
+- [x] **9-8.** 設計書更新（design.md を Cloud Functions 構成に書き換え）
 
 ---
 
@@ -218,3 +218,5 @@
 | 2026-05-07〜10 | Phase 6 完了。n8n→Firestore→Next.js 全フロー確認。プロンプト改善・重複排除・フィルタ修正・キャッシュ戦略整理・Firestoreインデックス一元管理 |
 | 2026-05-10 | Phase 8-1・8-2 完了。GitHub接続・apphosting.yaml・環境変数設定・main push → 自動デプロイ確認済み。ローカルブランチ整理（main のみ残存）|
 | 2026-05-10 | Phase 9 開始。v0.0.0 pre-release 作成。n8n → Cloud Functions 移行計画策定。functions/ ディレクトリ・TypeScript 実装完了（型チェック通過）|
+| 2026-05-11 | Phase 9-5・9-6 完了。手動実行・自動実行ともに成功。Web UI でのデータ表示確認済み。|
+| 2026-05-11 | Phase 9 完了。n8n ファイル削除・設計書を Cloud Functions 構成に更新。エコシステムを GCP/Firebase に統一。|
