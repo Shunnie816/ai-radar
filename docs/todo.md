@@ -99,7 +99,7 @@
 - [x] **4-2.** Firestoreにデータが正しく保存されているか確認
 - [x] **4-3.** 日次要約が生成されるか確認
 - [x] **4-4.** 重複チェックが機能するか確認（2回目の実行で重複なし）
-- [ ] **4-5.** Schedule Trigger による自動実行確認
+- [-] **4-5.** Schedule Trigger による自動実行確認（Cloud Functions の自動実行で代替確認済み）
 
 ---
 
@@ -158,23 +158,19 @@
 - [x] main ブランチ push → 自動デプロイ確認
 
 ### 8-3. カスタムドメイン設定
-- [ ] Firebase Console → App Hosting → カスタムドメイン追加
-- [ ] サブドメイン入力（例: `ai-radar.yourdomain.com`）
-- [ ] ドメインのDNS設定にCNAMEレコードを追加
-- [ ] SSL証明書の自動発行を確認（数分〜数十分）
-- [ ] サブドメインでアクセス確認
+- [x] Firebase Console → App Hosting → カスタムドメイン追加
+- [x] サブドメイン入力
+- [x] ドメインのDNS設定にCNAMEレコードを追加
+- [x] SSL証明書の自動発行を確認
+- [x] サブドメインでアクセス確認
 
-### 8-4. n8n の常時稼働化（VPS移行）
-- [ ] VPS選定・契約（さくらVPS / Render / Railway 等）
-- [ ] VPSにDockerインストール
-- [ ] n8nを VPS に移行（ワークフローのエクスポート → インポート）
-- [ ] Credentials（APIキー等）を再設定
-- [ ] 自動実行の動作確認
+### 8-4. ~~n8n の常時稼働化（VPS移行）~~
+- [-] Phase 9 で Cloud Functions に移行したため不要
 
 ### 8-5. 公開後の確認
-- [ ] サブドメインで全ページの表示確認
-- [ ] Firestoreセキュリティルールが正しく機能しているか確認
-- [ ] n8nの定期実行がVPSで動いているか確認
+- [x] サブドメインで全ページの表示確認
+- [x] Firestoreセキュリティルールが正しく機能しているか確認
+- [-] n8nの定期実行確認（Cloud Functions に移行済みのため対象外）
 
 ---
 
@@ -220,3 +216,4 @@
 | 2026-05-10 | Phase 9 開始。v0.0.0 pre-release 作成。n8n → Cloud Functions 移行計画策定。functions/ ディレクトリ・TypeScript 実装完了（型チェック通過）|
 | 2026-05-11 | Phase 9-5・9-6 完了。手動実行・自動実行ともに成功。Web UI でのデータ表示確認済み。|
 | 2026-05-11 | Phase 9 完了。n8n ファイル削除・設計書を Cloud Functions 構成に更新。エコシステムを GCP/Firebase に統一。|
+| 2026-05-11 | Phase 8 完了。カスタムドメイン設定・公開後確認完了。8-4（VPS移行）は Cloud Functions 移行により不要。|
