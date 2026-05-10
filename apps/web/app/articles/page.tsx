@@ -1,11 +1,10 @@
 import Link from 'next/link'
-import { getArticles } from '@/lib/firestore'
+import { getArticles, getDistinctSources } from '@/lib/firestore'
 import { ArticleCard } from '@/components/ArticleCard'
 import { Importance } from '@/lib/types'
 
 export const revalidate = 3600
 
-const SOURCES = ['OpenAI Blog', 'Google DeepMind', 'Hacker News', 'AWS ML Blog', 'Google Cloud Blog', 'ITmedia AI', 'Zenn AI']
 const IMPORTANCES: Importance[] = ['high', 'medium', 'low']
 
 export default async function ArticlesPage({
@@ -14,16 +13,13 @@ export default async function ArticlesPage({
   searchParams: Promise<{ source?: string; importance?: string }>
 }) {
   const { source, importance } = await searchParams
-  const articles = await getArticles({
-    source,
-    importance: importance as Importance | undefined,
-  })
+  const [articles, sources] = await Promise.all([
+    getArticles({ source, importance: importance as Importance | undefined }),
+    getDistinctSources(),
+  ])
 
   return (
     <main className="max-w-3xl mx-auto px-4 py-8">
-      <Link href="/" className="text-sm text-gray-400 hover:text-gray-600 mb-6 inline-block">
-        ← ホームに戻る
-      </Link>
       <h1 className="text-xl font-bold text-gray-900 mb-4">記事一覧</h1>
 
       <div className="flex gap-2 flex-wrap mb-6">
@@ -42,7 +38,7 @@ export default async function ArticlesPage({
             {imp}
           </Link>
         ))}
-        {SOURCES.map((s) => (
+        {sources.map((s) => (
           <Link
             key={s}
             href={`/articles?source=${encodeURIComponent(s)}`}

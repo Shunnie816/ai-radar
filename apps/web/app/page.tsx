@@ -3,7 +3,7 @@ import { getDailySummaries, getArticles } from '@/lib/firestore'
 import { DailySummaryCard } from '@/components/DailySummaryCard'
 import { ArticleCard } from '@/components/ArticleCard'
 
-export const revalidate = 3600
+export const revalidate = 0
 
 export default async function HomePage() {
   const [summaries, articles] = await Promise.all([
