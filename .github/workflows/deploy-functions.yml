@@ -29,9 +29,9 @@ jobs:
         working-directory: functions
         run: npm ci
 
-      - name: Type check
+      - name: Build
         working-directory: functions
-        run: npx tsc --noEmit
+        run: npm run build
 
       - name: Deploy to Firebase
         working-directory: functions
