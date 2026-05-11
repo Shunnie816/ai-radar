@@ -33,11 +33,22 @@ ai-radar/
 ### Issue・ブランチ・PR の運用
 
 - **すべての作業は Issue から始める**（GitHub Issues でタスク管理）
-- ブランチ命名: `feature/issue-{番号}-{説明}`（例: `feature/issue-12-readme`）
+- **`develop` への直接 commit・push は禁止。** 必ず Issue 起点でブランチを切ること
 - PR タイトル: Conventional Commits 形式（`feat:` / `fix:` / `chore:` / `docs:` など）
 - feature → develop の PR: `Closes #{番号}` は書かない（Issue はまだ作業中）
 - develop → main の PR: `Closes #{番号}` を記載 → main マージ時に Issue が自動クローズ
-- マージフロー: `feature/*` → `develop` → `main`
+- マージフロー: `作業ブランチ` → `develop` → `main`
+
+### ブランチ命名規則
+
+ラベルに応じてプレフィックスを使い分ける。形式: `{prefix}/issue-{番号}-{タイトルのslug}`
+
+| ラベル | プレフィックス | 例 |
+|---|---|---|
+| `bug` | `fix/` | `fix/issue-5-rss-parse-error` |
+| `documentation` | `docs/` | `docs/issue-18-claude-md` |
+| `infra` / `data` | `chore/` | `chore/issue-9-add-rss-source` |
+| `enhancement` / `ui` / `prompt` | `feature/` | `feature/issue-12-readme` |
 
 ### ラベルの使い分け
 
@@ -51,18 +62,84 @@ ai-radar/
 | `infra` | インフラ・Cloud Functions |
 | `data` | データ収集・RSSソース |
 
+### PR テンプレート
+
+PR 作成時は以下のフォーマットに従う。
+
+```markdown
+## 概要
+
+<!-- 変更内容を簡潔に -->
+
+## 対応 Issue
+
+Closes #{番号}  <!-- develop → main の PR のみ記載 -->
+
+## 変更内容
+
+-
+
+## 確認事項
+
+- [ ] ビルド・型チェックが通ること
+- [ ] Lint エラーがないこと
+```
+
+### チェック実行の役割分担
+
+lint・build の二重実行を防ぐため、実行主体を明確に分ける。
+
+| チェック | Claude Code | CI |
+|---|---|---|
+| 型チェック（functions） | ✅ `cd functions && npx tsc --noEmit` | ✅ |
+| ビルド（apps/web） | ✅ `cd apps/web && npm run build` | ✅ |
+| Lint | 手動可（任意） | ✅ |
+
+### 利用可能なスクリプト
+
+**functions/**
+
+```bash
+npm run build        # TypeScript コンパイル
+npm run build:watch  # ウォッチモード
+npm run serve        # エミュレーター起動
+npm run deploy       # Cloud Functions デプロイ
+npm run lint         # ESLint 実行
+```
+
+**apps/web/**
+
+```bash
+npm run dev    # 開発サーバー起動 (localhost:3000)
+npm run build  # プロダクションビルド
+npm run start  # プロダクションサーバー起動
+npm run lint   # ESLint 実行
+```
+
 ### functions/ の変更時
 
-- 必ず `cd functions && npx tsc --noEmit` でビルドエラーがないことを確認してからコミット
+- コミット前に必ず `cd functions && npx tsc --noEmit` で型エラーがないことを確認する
 - デプロイ: `firebase deploy --only functions`
 - デプロイ後は Cloud Scheduler で手動実行して動作確認する
 
 ### Web UI の変更時
 
-- 必ず `cd apps/web && npm run build` でビルドが通ることを確認してからコミット
+- コミット前に必ず `cd apps/web && npm run build` でビルドが通ることを確認する
 - main への PR マージで Firebase App Hosting が自動デプロイ
 
 ### コミットの粒度
 
 - 1 Issue = 1 ブランチ = 複数コミット OK（ただし 1 コミット = 1 責務）
 - 無関係な変更をまとめてコミットしない
+
+---
+
+## サブエージェント戦略
+
+`Agent` ツールでサブタスクを委任するとき、以下の基準でモデルを選ぶ。
+
+| タスク種別 | モデル | 具体例 |
+|---|---|---|
+| ファイル探索・コード調査 | `haiku` | Explore agent、glob、grep |
+| 通常の実装・テスト・PR 作成 | `sonnet` | 機能実装、テストコード生成 |
+| 複雑な設計・アーキテクチャ判断 | `opus` | 設計方針の検討、大規模リファクタ |
