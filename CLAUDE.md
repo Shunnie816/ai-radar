@@ -35,7 +35,8 @@ ai-radar/
 - **すべての作業は Issue から始める**（GitHub Issues でタスク管理）
 - ブランチ命名: `feature/issue-{番号}-{説明}`（例: `feature/issue-12-readme`）
 - PR タイトル: Conventional Commits 形式（`feat:` / `fix:` / `chore:` / `docs:` など）
-- PR 本文に `Closes #{番号}` を記載 → develop マージ時に Issue が自動クローズ
+- feature → develop の PR: `Closes #{番号}` は書かない（Issue はまだ作業中）
+- develop → main の PR: `Closes #{番号}` を記載 → main マージ時に Issue が自動クローズ
 - マージフロー: `feature/*` → `develop` → `main`
 
 ### ラベルの使い分け
