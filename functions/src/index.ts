@@ -9,6 +9,9 @@ const db = admin.firestore();
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const rssParser = new Parser({ timeout: 10000 });
 
+const HOURS_LOOKBACK = 48;
+const MAX_ARTICLES_PER_SOURCE = 10;
+
 const RSS_SOURCES = [
   { url: "https://openai.com/news/rss.xml", source: "OpenAI Blog" },
   { url: "https://deepmind.google/blog/rss.xml", source: "Google DeepMind" },
@@ -50,24 +53,30 @@ interface ArticleSummary {
 // ─── RSS 取得 ────────────────────────────────────────────────────────────────
 
 async function fetchRssArticles(): Promise<Article[]> {
+  const cutoff = new Date(Date.now() - HOURS_LOOKBACK * 60 * 60 * 1000);
+
   const results = await Promise.allSettled(
     RSS_SOURCES.map(async ({ url, source }) => {
       const feed = await rssParser.parseURL(url);
-      return feed.items.map((item) => ({
-        title: item.title ?? "",
-        url: item.link ?? item.guid ?? "",
-        source,
-        publishedAt: admin.firestore.Timestamp.fromDate(
-          item.pubDate ? new Date(item.pubDate) : new Date()
-        ),
-        rawContent: item.contentSnippet ?? item.content ?? item.summary ?? "",
-      }));
+      return feed.items
+        .map((item) => ({
+          title: item.title ?? "",
+          url: item.link ?? item.guid ?? "",
+          source,
+          publishedAt: admin.firestore.Timestamp.fromDate(
+            item.pubDate ? new Date(item.pubDate) : new Date()
+          ),
+          rawContent: item.contentSnippet ?? item.content ?? item.summary ?? "",
+        }))
+        .filter((a) => a.publishedAt.toDate() >= cutoff)
+        .slice(0, MAX_ARTICLES_PER_SOURCE);
     })
   );
 
-  return results.flatMap((result) =>
+  const perSource = results.map((result) =>
     result.status === "fulfilled" ? result.value : []
   );
+  return roundRobin(perSource);
 }
 
 // ─── 重複チェック ─────────────────────────────────────────────────────────────
@@ -193,6 +202,17 @@ async function saveDailySummary(
 }
 
 // ─── ユーティリティ ───────────────────────────────────────────────────────────
+
+function roundRobin<T>(arrays: T[][]): T[] {
+  const result: T[] = [];
+  const maxLen = Math.max(0, ...arrays.map((a) => a.length));
+  for (let i = 0; i < maxLen; i++) {
+    for (const arr of arrays) {
+      if (i < arr.length) result.push(arr[i]);
+    }
+  }
+  return result;
+}
 
 function chunkArray<T>(arr: T[], size: number): T[][] {
   const chunks: T[][] = [];
