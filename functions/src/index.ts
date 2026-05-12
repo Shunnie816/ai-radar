@@ -9,8 +9,8 @@ const db = admin.firestore();
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const rssParser = new Parser({ timeout: 10000 });
 
-const HOURS_LOOKBACK = 48;
-const MAX_ARTICLES_PER_SOURCE = 10;
+const HOURS_LOOKBACK = 26; // 24h + 2h buffer for timezone edge cases
+const MAX_ARTICLES_PER_SOURCE = 5;
 
 const RSS_SOURCES = [
   { url: "https://openai.com/news/rss.xml", source: "OpenAI Blog" },
@@ -203,6 +203,16 @@ async function saveDailySummary(
 
 // ─── ユーティリティ ───────────────────────────────────────────────────────────
 
+function capPerSource(articles: Article[], max: number): Article[] {
+  const counts = new Map<string, number>();
+  return articles.filter((a) => {
+    const n = counts.get(a.source) ?? 0;
+    if (n >= max) return false;
+    counts.set(a.source, n + 1);
+    return true;
+  });
+}
+
 function roundRobin<T>(arrays: T[][]): T[] {
   const result: T[] = [];
   const maxLen = Math.max(0, ...arrays.map((a) => a.length));
@@ -273,8 +283,8 @@ export const dailyFeed = onSchedule(
       return;
     }
 
-    // 3. 記事単体要約（逐次実行・最大50件）
-    const targets = newArticles.slice(0, 50);
+    // 3. 記事単体要約（逐次実行・最大50件、1ソースあたり最大7件）
+    const targets = capPerSource(newArticles, 7).slice(0, 50);
     const summaries = await summarizeArticlesSequentially(targets);
 
     // 4. Firestore 保存
