@@ -33,13 +33,12 @@ ai-radar/
 ### Issue・ブランチ・PR の運用
 
 - **すべての作業は Issue から始める**（GitHub Issues でタスク管理）
-- **作業ブランチは必ず `develop` から切る**（`main` から直接ブランチを切ることは基本禁止）
-- **`develop` への直接 commit・push は禁止。** 必ず Issue 起点でブランチを切ること
-- **`main` へのマージは `develop` からのみ許容**（作業ブランチから直接 `main` へは禁止）
+- **作業ブランチは必ず `main` から切る**
+- **`main` への直接 commit・push は禁止。** 必ず Issue 起点でブランチを切ること
 - PR タイトル: Conventional Commits 形式（`feat:` / `fix:` / `chore:` / `docs:` など）
-- 作業ブランチ → develop の PR: `Closes #{番号}` は書かない（Issue はまだ作業中）
-- develop → main の PR: `Closes #{番号}` を記載 → main マージ時に Issue が自動クローズ
-- マージフロー: `作業ブランチ（develop起点）` → `develop` → `main`
+- PR には必ず `Closes #{番号}` を記載 → main マージ時に Issue が自動クローズ
+- マージフロー: `作業ブランチ（main起点）` → `main`（squash merge）
+- リリース単位はタグ（`vX.Y.Z`）で管理する
 
 ### ブランチ命名規則
 
@@ -75,7 +74,7 @@ PR 作成時は以下のフォーマットに従う。
 
 ## 対応 Issue
 
-Closes #{番号}  <!-- develop → main の PR のみ記載 -->
+Closes #{番号}
 
 ## 変更内容
 
