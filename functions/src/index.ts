@@ -22,19 +22,50 @@ const RSS_SOURCES = [
   { url: "https://zenn.dev/topics/ai/feed", source: "Zenn AI" },
 ];
 
-const SUMMARY_SYSTEM_PROMPT = `あなたはAI業界のアナリストです。記事を日本語で簡潔に要約してください。
+const SUMMARY_SYSTEM_PROMPT = `あなたはAI業界のアナリストです。記事を日本語で簡潔に要約し、重要度を採点してください。
 
 必ず以下のJSON形式のみで回答してください（説明文や前置き不要）：
 {
   "summary": "何が起きたか・なぜ重要か・誰に影響があるかを2〜4文で",
+  "scores": {
+    "technicalImpact": <0〜3の整数>,
+    "practicalImpact": <0〜3の整数>,
+    "reliability": <0〜2の整数>,
+    "trendRelevance": <0〜2の整数>
+  },
+  "totalScore": <合計点 0〜10>,
   "importance": "high | medium | low",
   "tags": ["タグ1", "タグ2"]
 }
 
-importance の基準:
-- high: 業界全体に影響する大型リリース・研究・政策
-- medium: 特定分野や実務者に影響するアップデート
-- low: マイナーな更新・Tips・個人の考察`;
+採点基準：
+
+【技術インパクト】0〜3点
+- 3点: 新モデル・新アーキテクチャの発表、または業界水準を塗り替えるブレークスルー研究
+- 2点: 既存技術の大幅改善・新API・新機能の追加
+- 1点: マイナーアップデート・バグ修正・小改善
+- 0点: 技術的変化なし（解説・意見記事など）
+
+【実務影響】0〜3点
+- 3点: 多くの開発者・企業が即座に影響を受ける（価格変更・API破壊的変更・規制など）
+- 2点: 特定分野・職種の実務者に直接影響するアップデート
+- 1点: 将来的に影響しうるが、現時点では限定的
+- 0点: 実務への影響なし
+
+【信頼性】0〜2点
+- 2点: 公式発表・査読済み論文・著名機関（OpenAI / Google / Meta など）からの情報
+- 1点: 信頼できるメディア・専門家の分析・技術ブログ
+- 0点: 個人ブログ・未検証情報・憶測
+
+【トレンド性】0〜2点
+- 2点: 記事内容から業界横断的な動きが読み取れる（複数企業・組織の動向、複数メディアへの言及など）
+- 1点: 新規性はあるが言及範囲は限定的（単一企業・単一事例）
+- 0点: 既知情報の焼き直し・話題性なし
+
+importance の決定ルール（totalScore を使う）:
+- high  : 7〜10点（業界全体への高インパクト）
+- medium: 4〜6点（特定分野への中程度のインパクト）
+- low   : 0〜3点（マイナーな情報・読み物）`;
 
 interface Article {
   title: string;
@@ -46,6 +77,13 @@ interface Article {
 
 interface ArticleSummary {
   summary: string;
+  scores: {
+    technicalImpact: number;
+    practicalImpact: number;
+    reliability: number;
+    trendRelevance: number;
+  };
+  totalScore: number;
   importance: "high" | "medium" | "low";
   tags: string[];
 }
@@ -120,8 +158,20 @@ async function summarizeArticle(article: Article): Promise<ArticleSummary | null
 async function generateDailySummary(
   articles: (Article & ArticleSummary & { id: string })[]
 ): Promise<{ summary: string; keyTopics: string[] } | null> {
-  const articleList = articles
-    .map((a) => `- [${a.importance}] ${a.title} (${a.source})\n  ${a.summary}`)
+  const highArticles = articles.filter((a) => a.importance === "high");
+  const targets = highArticles.length > 0
+    ? highArticles
+    : articles.filter((a) => a.importance === "medium");
+
+  if (targets.length === 0) {
+    logger.info("no high or medium articles available for daily summary");
+    return null;
+  }
+
+  logger.info(`daily summary: using ${targets.length} articles (importance=${highArticles.length > 0 ? "high" : "medium fallback"})`);
+
+  const articleList = targets
+    .map((a) => `- [${a.importance}/${a.totalScore}点] ${a.title} (${a.source})\n  ${a.summary}`)
     .join("\n");
   try {
     const response = await anthropic.messages.create({
@@ -173,6 +223,8 @@ async function saveArticles(
       publishedAt: article.publishedAt,
       rawContent: article.rawContent,
       summary: summary.summary,
+      scores: summary.scores,
+      totalScore: summary.totalScore,
       importance: summary.importance,
       tags: summary.tags,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
