@@ -13,13 +13,25 @@ const HOURS_LOOKBACK = 26; // 24h + 2h buffer for timezone edge cases
 const MAX_ARTICLES_PER_SOURCE = 5;
 
 const RSS_SOURCES = [
+  // AI 大手・研究
   { url: "https://openai.com/news/rss.xml", source: "OpenAI Blog" },
   { url: "https://deepmind.google/blog/rss.xml", source: "Google DeepMind" },
-  { url: "https://news.ycombinator.com/rss", source: "Hacker News" },
   { url: "https://aws.amazon.com/blogs/machine-learning/feed/", source: "AWS ML Blog" },
   { url: "https://cloudblog.withgoogle.com/rss", source: "Google Cloud Blog" },
+  { url: "https://huggingface.co/blog/feed.xml", source: "Hugging Face Blog" },
+  { url: "https://engineering.fb.com/feed/", source: "Meta Engineering" },
+  // セキュリティ
+  { url: "https://feeds.feedburner.com/TheHackersNews", source: "The Hacker News" },
+  { url: "https://krebsonsecurity.com/feed/", source: "Krebs on Security" },
+  // テック・経済・トレンド
+  { url: "https://news.ycombinator.com/rss", source: "Hacker News" },
+  { url: "https://techcrunch.com/feed/", source: "TechCrunch" },
+  { url: "https://www.technologyreview.com/feed/", source: "MIT Technology Review" },
+  { url: "https://www.wired.com/feed/rss", source: "Wired" },
+  // 日本語
   { url: "https://rss.itmedia.co.jp/rss/2.0/aiplus.xml", source: "ITmedia AI" },
   { url: "https://zenn.dev/topics/ai/feed", source: "Zenn AI" },
+  { url: "https://qiita.com/popular-items/feed", source: "Qiita Popular" },
 ];
 
 const SUMMARY_SYSTEM_PROMPT = `あなたはAI業界のアナリストです。記事を日本語で簡潔に要約し、重要度を採点してください。
