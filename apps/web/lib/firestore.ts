@@ -119,21 +119,6 @@ export async function getArticles(filter: ArticleFilter = {}): Promise<Article[]
   return articles
 }
 
-// ソース一覧は記事一覧と同じ周期でキャッシュ
-export async function getDistinctSources(): Promise<string[]> {
-  const rows = await runQuery(
-    {
-      structuredQuery: {
-        from: [{ collectionId: 'articles' }],
-        select: { fields: [{ fieldPath: 'source' }] },
-        limit: 500,
-      },
-    },
-    { next: { revalidate: 3600 } },
-  )
-  return [...new Set(rows.map((r) => r.source as string).filter(Boolean))].sort()
-}
-
 // 記事詳細は保存後に変化しないため永続キャッシュ
 export async function getArticle(id: string): Promise<Article | null> {
   const doc = await getDoc('articles', id, { cache: 'force-cache' })
