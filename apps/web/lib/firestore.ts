@@ -95,10 +95,19 @@ export interface ArticleFilter {
 // 記事一覧は1時間キャッシュ（日次バッチで十分）
 export async function getArticles(filter: ArticleFilter = {}): Promise<Article[]> {
   const { source, importance, limitCount = 50 } = filter
+  // limit適用後にフィルタすると件数が欠けるため、絞り込みはサーバー側のwhereで行う。
+  // 複合インデックスは (importance, createdAt) と (source, createdAt) の2つのみなので
+  // サーバー側の条件は1つまでとし、両方指定時は source をクライアント側で絞り込む
+  const fieldFilter = importance
+    ? { field: { fieldPath: 'importance' }, op: 'EQUAL', value: { stringValue: importance } }
+    : source
+      ? { field: { fieldPath: 'source' }, op: 'EQUAL', value: { stringValue: source } }
+      : null
   const rows = await runQuery(
     {
       structuredQuery: {
         from: [{ collectionId: 'articles' }],
+        ...(fieldFilter && { where: { fieldFilter } }),
         orderBy: [{ field: { fieldPath: 'createdAt' }, direction: 'DESCENDING' }],
         limit: limitCount,
       },
@@ -106,8 +115,7 @@ export async function getArticles(filter: ArticleFilter = {}): Promise<Article[]
     { next: { revalidate: 3600 } },
   )
   let articles = rows.map((r) => r as unknown as Article)
-  if (source) articles = articles.filter((a) => a.source === source)
-  if (importance) articles = articles.filter((a) => a.importance === importance)
+  if (importance && source) articles = articles.filter((a) => a.source === source)
   return articles
 }
 
