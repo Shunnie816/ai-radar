@@ -13,6 +13,7 @@ const HOURS_LOOKBACK = 26; // 24h + 2h buffer for timezone edge cases
 const MAX_ARTICLES_PER_SOURCE = 5;
 const MAX_ARTICLES_TO_SCORE = 75;    // Haiku は安価なので多めに処理
 const MAX_ARTICLES_TO_SUMMARIZE = 30; // Sonnet は high/medium のみに絞る
+const SCORING_CHUNK_SIZE = 10;       // 1リクエストで採点する記事数（採点基準の送信回数を削減）
 
 const MODEL_SCORING = "claude-haiku-4-5-20251001";
 const MODEL_SUMMARY = "claude-sonnet-4-6";
@@ -41,21 +42,26 @@ const RSS_SOURCES = [
 
 // ─── プロンプト ───────────────────────────────────────────────────────────────
 
-// Haiku: 重要度スコアリング専用（タイトル + 冒頭のみ）
+// Haiku: 重要度スコアリング専用（タイトル + 冒頭のみ・複数記事を一括採点）
 const SCORING_SYSTEM_PROMPT = `あなたはAI・テック・セキュリティ記事の重要度を判定するアシスタントです。
-タイトルと冒頭テキストをもとに重要度を採点してください。
+【記事N】の形式で複数の記事が与えられます。各記事のタイトルと冒頭テキストをもとに重要度を採点してください。
 
-必ず以下のJSON形式のみで回答してください（説明文や前置き不要）：
+必ず以下のJSON形式のみで回答してください（説明文や前置き不要）。results には与えられた全記事分の要素を必ず含めてください：
 {
-  "scores": {
-    "technicalImpact": <0〜3の整数>,
-    "practicalImpact": <0〜3の整数>,
-    "reliability": <0〜2の整数>,
-    "trendRelevance": <0〜2の整数>
-  },
-  "totalScore": <合計点 0〜10>,
-  "importance": "high | medium | low",
-  "tags": ["タグ1", "タグ2"]
+  "results": [
+    {
+      "index": <記事番号N>,
+      "scores": {
+        "technicalImpact": <0〜3の整数>,
+        "practicalImpact": <0〜3の整数>,
+        "reliability": <0〜2の整数>,
+        "trendRelevance": <0〜2の整数>
+      },
+      "totalScore": <合計点 0〜10>,
+      "importance": "high | medium | low",
+      "tags": ["タグ1", "タグ2"]
+    }
+  ]
 }
 
 採点基準：
@@ -169,20 +175,31 @@ async function filterNewArticles(articles: Article[]): Promise<Article[]> {
 
 // ─── Claude API: 重要度スコアリング（Haiku）─────────────────────────────────
 
-async function scoreArticle(article: Article): Promise<ScoringResult | null> {
-  const userContent = `ソース: ${article.source}\nタイトル: ${article.title}\n冒頭: ${article.rawContent.slice(0, 500)}`;
+// 約1,000トークンの採点基準（システムプロンプト）を記事ごとに送るとコストが嵩むため、
+// SCORING_CHUNK_SIZE 件を1リクエストにまとめて採点する
+async function scoreArticleChunk(articles: Article[]): Promise<(ScoringResult | null)[]> {
+  const userContent = articles
+    .map((a, i) => `【記事${i + 1}】\nソース: ${a.source}\nタイトル: ${a.title}\n冒頭: ${a.rawContent.slice(0, 500)}`)
+    .join("\n\n");
   try {
     const response = await anthropic.messages.create({
       model: MODEL_SCORING,
-      max_tokens: 256,
+      // 途中で切れると chunk 全体のJSONパースが失敗するため余裕を持たせる（課金は生成分のみ）
+      max_tokens: 4096,
       system: SCORING_SYSTEM_PROMPT,
       messages: [{ role: "user", content: userContent }],
     });
     const text = response.content[0].type === "text" ? response.content[0].text : "";
-    return JSON.parse(extractJson(text)) as ScoringResult;
+    const parsed = JSON.parse(extractJson(text)) as {
+      results: (ScoringResult & { index: number })[];
+    };
+    // モデルが一部の記事を落とす可能性があるため、位置ではなく index で突き合わせる
+    // （index が "1" のように文字列で返っても外れないよう Number で正規化）
+    const byIndex = new Map(parsed.results.map((r) => [Number(r.index), r]));
+    return articles.map((_, i) => byIndex.get(i + 1) ?? null);
   } catch (e) {
-    logger.warn(`scoreArticle failed for "${article.title}"`, e);
-    return null;
+    logger.warn(`scoreArticleChunk failed for ${articles.length} articles`, e);
+    return articles.map(() => null);
   }
 }
 
@@ -349,14 +366,15 @@ function extractJson(text: string): string {
   return match[0];
 }
 
-// Haiku: 1500ms インターバル（レート制限安全マージン）
-async function scoreArticlesSequentially(
+// Haiku: SCORING_CHUNK_SIZE 件ずつ採点、チャンク間 1500ms インターバル（レート制限安全マージン）
+async function scoreArticlesInChunks(
   articles: Article[]
 ): Promise<(ScoringResult | null)[]> {
   const results: (ScoringResult | null)[] = [];
-  for (let i = 0; i < articles.length; i++) {
-    results.push(await scoreArticle(articles[i]));
-    if (i < articles.length - 1) await sleep(1500);
+  const chunks = chunkArray(articles, SCORING_CHUNK_SIZE);
+  for (let i = 0; i < chunks.length; i++) {
+    results.push(...(await scoreArticleChunk(chunks[i])));
+    if (i < chunks.length - 1) await sleep(1500);
   }
   return results;
 }
@@ -402,8 +420,8 @@ export const dailyFeed = onSchedule(
 
     // 3. 重要度スコアリング（Haiku: 安価・高速）
     const scoringTargets = capPerSource(newArticles, 7).slice(0, MAX_ARTICLES_TO_SCORE);
-    logger.info(`scoring ${scoringTargets.length} articles with ${MODEL_SCORING}`);
-    const scores = await scoreArticlesSequentially(scoringTargets);
+    logger.info(`scoring ${scoringTargets.length} articles with ${MODEL_SCORING} (${SCORING_CHUNK_SIZE} per request)`);
+    const scores = await scoreArticlesInChunks(scoringTargets);
 
     // 4. high/medium のみ絞り込み（low は除外してコスト削減）
     const toSummarize: ScoredArticle[] = [];
