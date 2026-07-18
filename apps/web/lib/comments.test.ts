@@ -41,7 +41,19 @@ describe('commentFromDoc', () => {
       photoURL: 'https://example.com/avatar.png',
       text: '参考になりました',
       createdAt,
+      updatedAt: null,
     })
+  })
+
+  it('should convert updatedAt when the comment has been edited', () => {
+    const updatedAt = new Date('2026-07-18T10:00:00Z')
+
+    const comment = commentFromDoc('comment-1', {
+      text: '修正後の本文',
+      updatedAt: { toDate: () => updatedAt },
+    })
+
+    expect(comment.updatedAt).toEqual(updatedAt)
   })
 
   it('should fall back to defaults for missing fields', () => {
@@ -54,6 +66,7 @@ describe('commentFromDoc', () => {
       photoURL: '',
       text: '',
       createdAt: null,
+      updatedAt: null,
     })
   })
 })
