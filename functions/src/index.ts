@@ -393,6 +393,78 @@ async function summarizeArticlesSequentially(
 
 // ─── メイン関数 ───────────────────────────────────────────────────────────────
 
+async function runDailyFeed(date: string): Promise<void> {
+  // 1. RSS 取得
+  const allArticles = await fetchRssArticles();
+  logger.info(`fetched ${allArticles.length} articles from RSS`);
+
+  // 2. 重複チェック
+  const newArticles = await filterNewArticles(allArticles);
+  logger.info(`${newArticles.length} new articles after dedup`);
+
+  if (newArticles.length === 0) {
+    logger.info("no new articles today, skipping");
+    return;
+  }
+
+  // 3. 重要度スコアリング（Haiku: 安価・高速）
+  const scoringTargets = capPerSource(newArticles, 7).slice(0, MAX_ARTICLES_TO_SCORE);
+  logger.info(`scoring ${scoringTargets.length} articles with ${MODEL_SCORING} (${SCORING_CHUNK_SIZE} per request)`);
+  const scores = await scoreArticlesInChunks(scoringTargets);
+
+  // 個別チャンクの失敗は warn で許容するが、全滅はAPI障害・キー失効など系統的な
+  // 問題なので ERROR としてアラート対象にする（docs/monitoring.md）
+  if (scores.every((s) => s === null)) {
+    throw new Error(`scoring failed for all ${scoringTargets.length} articles`);
+  }
+
+  // 4. high/medium のみ絞り込み（low は除外してコスト削減）
+  const toSummarize: ScoredArticle[] = [];
+  for (let i = 0; i < scoringTargets.length; i++) {
+    const scoring = scores[i];
+    if (scoring && scoring.importance !== "low") {
+      toSummarize.push({ ...scoringTargets[i], ...scoring });
+    }
+  }
+  const summarizeTargets = toSummarize.slice(0, MAX_ARTICLES_TO_SUMMARIZE);
+
+  if (summarizeTargets.length === 0) {
+    logger.info("no high/medium articles today, skipping summarization");
+    return;
+  }
+
+  logger.info(
+    `${summarizeTargets.length} articles pass scoring filter (high/medium), summarizing with ${MODEL_SUMMARY}`
+  );
+
+  // 5. 要約（Sonnet: high/medium 記事のみ）
+  const summaries = await summarizeArticlesSequentially(summarizeTargets);
+
+  // 6. Firestore 保存
+  const savedArticles = await saveArticles(summarizeTargets, summaries);
+  logger.info(`saved ${savedArticles.length} articles to Firestore`);
+
+  // 要約対象があるのに1件も保存できていないのは要約リクエストの全滅
+  if (savedArticles.length === 0) {
+    throw new Error(`summarization failed for all ${summarizeTargets.length} articles`);
+  }
+
+  // 7. 日次要約生成（Sonnet）
+  const dailyResult = await generateDailySummary(savedArticles);
+  if (!dailyResult) {
+    // 記事は保存済みだが日次要約が欠落するため、失敗として通知対象にする
+    throw new Error("daily summary generation failed");
+  }
+
+  // 8. 日次要約保存
+  await saveDailySummary(
+    date,
+    dailyResult,
+    savedArticles.map((a) => a.id),
+    savedArticles.length
+  );
+}
+
 export const dailyFeed = onSchedule(
   {
     schedule: "0 21 * * *", // 06:00 JST
@@ -404,61 +476,8 @@ export const dailyFeed = onSchedule(
   async () => {
     const date = getTodayJst();
     logger.info(`[ai-radar] starting daily feed for ${date}`);
-
-    // 1. RSS 取得
-    const allArticles = await fetchRssArticles();
-    logger.info(`fetched ${allArticles.length} articles from RSS`);
-
-    // 2. 重複チェック
-    const newArticles = await filterNewArticles(allArticles);
-    logger.info(`${newArticles.length} new articles after dedup`);
-
-    if (newArticles.length === 0) {
-      logger.info("no new articles today, skipping");
-      return;
-    }
-
-    // 3. 重要度スコアリング（Haiku: 安価・高速）
-    const scoringTargets = capPerSource(newArticles, 7).slice(0, MAX_ARTICLES_TO_SCORE);
-    logger.info(`scoring ${scoringTargets.length} articles with ${MODEL_SCORING} (${SCORING_CHUNK_SIZE} per request)`);
-    const scores = await scoreArticlesInChunks(scoringTargets);
-
-    // 4. high/medium のみ絞り込み（low は除外してコスト削減）
-    const toSummarize: ScoredArticle[] = [];
-    for (let i = 0; i < scoringTargets.length; i++) {
-      const scoring = scores[i];
-      if (scoring && scoring.importance !== "low") {
-        toSummarize.push({ ...scoringTargets[i], ...scoring });
-      }
-    }
-    const summarizeTargets = toSummarize.slice(0, MAX_ARTICLES_TO_SUMMARIZE);
-    logger.info(
-      `${summarizeTargets.length} articles pass scoring filter (high/medium), summarizing with ${MODEL_SUMMARY}`
-    );
-
-    // 5. 要約（Sonnet: high/medium 記事のみ）
-    const summaries = await summarizeArticlesSequentially(summarizeTargets);
-
-    // 6. Firestore 保存
-    const savedArticles = await saveArticles(summarizeTargets, summaries);
-    logger.info(`saved ${savedArticles.length} articles to Firestore`);
-
-    if (savedArticles.length === 0) return;
-
-    // 7. 日次要約生成（Sonnet）
-    const dailyResult = await generateDailySummary(savedArticles);
-    if (!dailyResult) {
-      logger.warn("daily summary generation failed");
-      return;
-    }
-
-    // 8. 日次要約保存
-    await saveDailySummary(
-      date,
-      dailyResult,
-      savedArticles.map((a) => a.id),
-      savedArticles.length
-    );
-    logger.info(`[ai-radar] completed for ${date}`);
+    await runDailyFeed(date);
+    // 成功マーカー: この1行が毎日出ていることが正常稼働の証跡（docs/monitoring.md）
+    logger.info(`[ai-radar] dailyFeed succeeded for ${date}`);
   }
 );
