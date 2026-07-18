@@ -9,5 +9,10 @@ service cloud.firestore {
       allow read: if true;
       allow write: if false;
     }
+    // ユーザープロフィール（表示名・アイコン）。書き込みは本人のみ
+    match /users/{uid} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
   }
 }
