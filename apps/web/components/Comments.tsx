@@ -1,7 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import Image from 'next/image'
+import { useEffect, useMemo, useState } from 'react'
 import {
   addDoc,
   collection,
@@ -15,6 +14,10 @@ import {
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/lib/auth-context'
+import { useProfile } from '@/lib/profile-context'
+import { useUserProfiles } from '@/lib/use-profiles'
+import { resolveCommentAuthor } from '@/lib/profile'
+import { Avatar } from '@/components/Avatar'
 import {
   Comment,
   MAX_COMMENT_LENGTH,
@@ -25,6 +28,7 @@ import {
 // 記事詳細ページのコメント欄。一覧は誰でも閲覧でき、投稿・編集・削除はログイン時のみ
 export function Comments({ articleId }: { articleId: string }) {
   const { user } = useAuth()
+  const { profile } = useProfile()
   const [comments, setComments] = useState<Comment[] | null>(null)
   const [loadFailed, setLoadFailed] = useState(false)
   const [draft, setDraft] = useState('')
@@ -53,6 +57,11 @@ export function Comments({ articleId }: { articleId: string }) {
     )
   }, [articleId])
 
+  // 投稿者の表示名・アイコンは表示時に最新のプロフィールを参照する
+  // （プロフィール変更が過去のコメントにも反映される）
+  const uids = useMemo(() => [...new Set((comments ?? []).map((c) => c.uid))], [comments])
+  const profiles = useUserProfiles(uids)
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!user) return
@@ -60,9 +69,10 @@ export function Comments({ articleId }: { articleId: string }) {
     if (!text) return
     setSubmitting(true)
     try {
+      // displayName/photoURL はプロフィール未取得時のフォールバック用スナップショット
       await addDoc(collection(db, 'articles', articleId, 'comments'), {
         uid: user.uid,
-        displayName: user.displayName ?? '',
+        displayName: profile?.displayName || user.displayName || '',
         photoURL: user.photoURL ?? '',
         text,
         createdAt: serverTimestamp(),
@@ -119,13 +129,13 @@ export function Comments({ articleId }: { articleId: string }) {
         <p className="text-sm text-gray-400">まだコメントはありません</p>
       ) : (
         <ul className="space-y-4">
-          {comments.map((c) => (
+          {comments.map((c) => {
+            const author = resolveCommentAuthor(c, profiles[c.uid])
+            return (
             <li key={c.id} className="bg-gray-50 rounded-xl p-4">
               <div className="flex items-center gap-2 mb-2">
-                {c.photoURL && (
-                  <Image src={c.photoURL} alt="" width={20} height={20} className="rounded-full" />
-                )}
-                <span className="text-xs font-medium text-gray-700">{c.displayName}</span>
+                <Avatar emoji={author.avatarEmoji} photoURL={author.photoURL} size={20} />
+                <span className="text-xs font-medium text-gray-700">{author.displayName}</span>
                 <span className="text-xs text-gray-400">
                   {c.createdAt?.toLocaleString('ja-JP', { dateStyle: 'short', timeStyle: 'short' })}
                   {c.updatedAt && ' (編集済み)'}
@@ -180,7 +190,8 @@ export function Comments({ articleId }: { articleId: string }) {
                 <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{c.text}</p>
               )}
             </li>
-          ))}
+            )
+          })}
         </ul>
       )}
 
