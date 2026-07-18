@@ -1,35 +1,14 @@
 import { Article, DailySummary, Importance } from './types'
+import { parseFields, type FsValue } from './firestore-parse'
 
 const PROJECT_ID = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID
 const API_KEY = process.env.NEXT_PUBLIC_FIREBASE_API_KEY
 const BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`
 
-type FsValue =
-  | { stringValue: string }
-  | { integerValue: string }
-  | { timestampValue: string }
-  | { booleanValue: boolean }
-  | { arrayValue: { values?: FsValue[] } }
-  | { mapValue: { fields: Record<string, FsValue> } }
-
 type FetchCache =
   | { cache: 'no-store' }
   | { cache: 'force-cache' }
   | { next: { revalidate: number } }
-
-function parseValue(v: FsValue): unknown {
-  if ('stringValue' in v) return v.stringValue
-  if ('integerValue' in v) return Number(v.integerValue)
-  if ('timestampValue' in v) return v.timestampValue
-  if ('booleanValue' in v) return v.booleanValue
-  if ('arrayValue' in v) return (v.arrayValue.values ?? []).map(parseValue)
-  if ('mapValue' in v) return parseFields(v.mapValue.fields)
-  return null
-}
-
-function parseFields(fields: Record<string, FsValue>): Record<string, unknown> {
-  return Object.fromEntries(Object.entries(fields).map(([k, v]) => [k, parseValue(v)]))
-}
 
 function docId(name: string): string {
   return name.split('/').pop() ?? ''

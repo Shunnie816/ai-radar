@@ -3,6 +3,7 @@ import { logger } from "firebase-functions/v2";
 import * as admin from "firebase-admin";
 import Anthropic from "@anthropic-ai/sdk";
 import Parser from "rss-parser";
+import { capPerSource, chunkArray, extractJson, getTodayJst, roundRobin } from "./utils";
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -325,46 +326,7 @@ async function saveDailySummary(
 
 // ─── ユーティリティ ───────────────────────────────────────────────────────────
 
-function capPerSource(articles: Article[], max: number): Article[] {
-  const counts = new Map<string, number>();
-  return articles.filter((a) => {
-    const n = counts.get(a.source) ?? 0;
-    if (n >= max) return false;
-    counts.set(a.source, n + 1);
-    return true;
-  });
-}
-
-function roundRobin<T>(arrays: T[][]): T[] {
-  const result: T[] = [];
-  const maxLen = Math.max(0, ...arrays.map((a) => a.length));
-  for (let i = 0; i < maxLen; i++) {
-    for (const arr of arrays) {
-      if (i < arr.length) result.push(arr[i]);
-    }
-  }
-  return result;
-}
-
-function chunkArray<T>(arr: T[], size: number): T[][] {
-  const chunks: T[][] = [];
-  for (let i = 0; i < arr.length; i += size) {
-    chunks.push(arr.slice(i, i + size));
-  }
-  return chunks;
-}
-
-function getTodayJst(): string {
-  return new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Tokyo" });
-}
-
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-function extractJson(text: string): string {
-  const match = text.match(/\{[\s\S]*\}/);
-  if (!match) throw new SyntaxError("No JSON object found in response");
-  return match[0];
-}
 
 // Haiku: SCORING_CHUNK_SIZE 件ずつ採点、チャンク間 1500ms インターバル（レート制限安全マージン）
 async function scoreArticlesInChunks(

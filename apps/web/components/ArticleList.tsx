@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react'
 import useSWR from 'swr'
 import { Article, Importance } from '@/lib/types'
+import { extractSources, filterArticles } from '@/lib/article-filter'
 import { ArticleCard } from './ArticleCard'
 
 const IMPORTANCES: Importance[] = ['high', 'medium', 'low']
@@ -35,23 +36,12 @@ export function ArticleList() {
     dedupingInterval: 5 * 60 * 1000,
   })
 
-  const sources = useMemo(
-    () => [...new Set((data ?? []).map((a) => a.source).filter(Boolean))].sort(),
-    [data],
-  )
+  const sources = useMemo(() => extractSources(data ?? []), [data])
 
-  const articles = useMemo(() => {
-    const items = data ?? []
-    return items.filter((a) => {
-      if (selectedSource && a.source !== selectedSource) return false
-      if (selectedImportance && a.importance !== selectedImportance) return false
-      if (query) {
-        const q = query.toLowerCase()
-        return a.title.toLowerCase().includes(q) || a.summary.toLowerCase().includes(q)
-      }
-      return true
-    })
-  }, [data, query, selectedSource, selectedImportance])
+  const articles = useMemo(
+    () => filterArticles(data ?? [], { query, source: selectedSource, importance: selectedImportance }),
+    [data, query, selectedSource, selectedImportance],
+  )
 
   const isFiltered = !selectedSource && !selectedImportance
 
