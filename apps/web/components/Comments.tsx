@@ -132,7 +132,7 @@ export function Comments({ articleId }: { articleId: string }) {
           {comments.map((c) => {
             const author = resolveCommentAuthor(c, profiles[c.uid])
             return (
-            <li key={c.id} className="bg-gray-50 rounded-xl p-4">
+            <li key={c.id} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
               <div className="flex items-center gap-2 mb-2">
                 <Avatar emoji={author.avatarEmoji} photoURL={author.photoURL} size={20} />
                 <span className="text-xs font-medium text-gray-700">{author.displayName}</span>
@@ -202,7 +202,7 @@ export function Comments({ articleId }: { articleId: string }) {
             onChange={(e) => setDraft(e.target.value)}
             placeholder="コメントを書く"
             rows={3}
-            className="w-full border border-gray-200 rounded-xl p-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-200 resize-y"
+            className="w-full bg-white border border-gray-200 rounded-xl p-3 text-sm text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent resize-y transition-shadow"
           />
           <div className="flex items-center justify-between mt-2">
             <span className={`text-xs ${overLimit ? 'text-red-500' : 'text-gray-400'}`}>
