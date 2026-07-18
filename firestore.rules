@@ -6,11 +6,17 @@ service cloud.firestore {
       allow write: if false;
 
       // コメント: 閲覧は全員可、投稿はログインユーザー本人名義のみ（500字まで）、
-      // 削除は本人のみ。編集は非対応（update はデフォルト拒否）
+      // 編集・削除は本人のみ。編集で変更できるのは text と updatedAt だけ
       match /comments/{commentId} {
         allow read: if true;
         allow create: if request.auth != null
           && request.resource.data.uid == request.auth.uid
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 500;
+        allow update: if request.auth != null
+          && resource.data.uid == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'updatedAt'])
           && request.resource.data.text is string
           && request.resource.data.text.size() > 0
           && request.resource.data.text.size() <= 500;
