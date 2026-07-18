@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { getArticle } from '@/lib/firestore'
 import { TagBadge } from '@/components/TagBadge'
+import { FavoriteButton } from '@/components/FavoriteButton'
 
 export const revalidate = 3600
 
@@ -24,9 +25,12 @@ export default async function ArticlePage({ params }: { params: Promise<{ id: st
 
       <div className="flex items-start gap-2 mb-2">
         <h1 className="text-xl font-bold text-gray-900 leading-snug flex-1">{article.title}</h1>
-        <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full mt-1 ${importanceColor[article.importance]}`}>
-          {article.importance}
-        </span>
+        <div className="shrink-0 flex items-center gap-2 mt-1">
+          <span className={`text-xs px-2 py-0.5 rounded-full ${importanceColor[article.importance]}`}>
+            {article.importance}
+          </span>
+          <FavoriteButton article={article} />
+        </div>
       </div>
 
       <div className="flex items-center gap-3 text-xs text-gray-400 mb-6">
