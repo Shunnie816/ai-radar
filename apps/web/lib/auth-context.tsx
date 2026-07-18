@@ -23,15 +23,20 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null)
 
 // 初回ログイン時に users/{uid} を作成する。
-// 2回目以降は Google アカウント側の表示名・アイコンの変更を反映する
+// 表示名・アイコンはプロフィール編集（/profile）で管理するため再ログインでは
+// 上書きせず、失効しうる Google の写真 URL だけを最新に保つ
 async function ensureUserDoc(user: User): Promise<void> {
   const ref = doc(db, 'users', user.uid)
-  const profile = { displayName: user.displayName ?? '', photoURL: user.photoURL ?? '' }
   const snap = await getDoc(ref)
   if (snap.exists()) {
-    await setDoc(ref, profile, { merge: true })
+    await setDoc(ref, { photoURL: user.photoURL ?? '' }, { merge: true })
   } else {
-    await setDoc(ref, { ...profile, createdAt: serverTimestamp() })
+    await setDoc(ref, {
+      displayName: user.displayName ?? '',
+      photoURL: user.photoURL ?? '',
+      avatarEmoji: '',
+      createdAt: serverTimestamp(),
+    })
   }
 }
 

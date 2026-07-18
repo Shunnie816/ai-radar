@@ -1,14 +1,16 @@
 'use client'
 
-import Image from 'next/image'
 import Link from 'next/link'
 import { useAuth } from '@/lib/auth-context'
+import { useProfile } from '@/lib/profile-context'
+import { Avatar } from '@/components/Avatar'
 
 // ユーザーがポップアップを自分で閉じた場合はエラー扱いにしない
 const IGNORED_AUTH_ERRORS = ['auth/popup-closed-by-user', 'auth/cancelled-popup-request']
 
 export function UserMenu() {
   const { user, loading, signIn, signOut } = useAuth()
+  const { profile } = useProfile()
 
   const handleSignIn = () => {
     signIn().catch((e: unknown) => {
@@ -36,21 +38,22 @@ export function UserMenu() {
       <Link href="/favorites" className="hover:text-gray-900 transition-colors">
         お気に入り
       </Link>
-      <div className="flex items-center gap-2">
-        {user.photoURL && (
-          <Image
-            src={user.photoURL}
-            alt=""
-            width={24}
-            height={24}
-            className="rounded-full"
-          />
-        )}
-        <span className="hidden sm:inline text-gray-700">{user.displayName}</span>
-        <button onClick={() => signOut()} className="hover:text-gray-900 transition-colors">
-          ログアウト
-        </button>
-      </div>
+      <Link
+        href="/profile"
+        className="flex items-center gap-2 hover:text-gray-900 transition-colors"
+      >
+        <Avatar
+          emoji={profile?.avatarEmoji ?? ''}
+          photoURL={profile?.photoURL ?? user.photoURL ?? ''}
+          size={24}
+        />
+        <span className="hidden sm:inline text-gray-700">
+          {profile?.displayName || user.displayName}
+        </span>
+      </Link>
+      <button onClick={() => signOut()} className="hover:text-gray-900 transition-colors">
+        ログアウト
+      </button>
     </div>
   )
 }
