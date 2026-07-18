@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { Article } from '@/lib/types'
 import { TagBadge } from './TagBadge'
+import { FavoriteButton } from './FavoriteButton'
 
 const importanceColor = {
   high: 'bg-red-100 text-red-700',
@@ -25,9 +26,12 @@ export function ArticleCard({ article }: { article: Article }) {
         <Link href={`/articles/${article.id}`} className="font-medium text-gray-900 hover:text-blue-600 leading-snug">
           {article.title}
         </Link>
-        <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full ${importanceColor[article.importance]}`}>
-          {article.importance}
-        </span>
+        <div className="shrink-0 flex items-center gap-2">
+          <span className={`text-xs px-2 py-0.5 rounded-full ${importanceColor[article.importance]}`}>
+            {article.importance}
+          </span>
+          <FavoriteButton article={article} />
+        </div>
       </div>
       <p className="text-sm text-gray-600 mb-3 line-clamp-2">{article.summary}</p>
       <div className="flex items-center gap-2 flex-wrap">

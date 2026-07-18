@@ -1,6 +1,7 @@
 'use client'
 
 import Image from 'next/image'
+import Link from 'next/link'
 import { useAuth } from '@/lib/auth-context'
 
 // ユーザーがポップアップを自分で閉じた場合はエラー扱いにしない
@@ -31,20 +32,25 @@ export function UserMenu() {
   }
 
   return (
-    <div className="flex items-center gap-2">
-      {user.photoURL && (
-        <Image
-          src={user.photoURL}
-          alt=""
-          width={24}
-          height={24}
-          className="rounded-full"
-        />
-      )}
-      <span className="hidden sm:inline text-gray-700">{user.displayName}</span>
-      <button onClick={() => signOut()} className="hover:text-gray-900 transition-colors">
-        ログアウト
-      </button>
+    <div className="flex items-center gap-4">
+      <Link href="/favorites" className="hover:text-gray-900 transition-colors">
+        お気に入り
+      </Link>
+      <div className="flex items-center gap-2">
+        {user.photoURL && (
+          <Image
+            src={user.photoURL}
+            alt=""
+            width={24}
+            height={24}
+            className="rounded-full"
+          />
+        )}
+        <span className="hidden sm:inline text-gray-700">{user.displayName}</span>
+        <button onClick={() => signOut()} className="hover:text-gray-900 transition-colors">
+          ログアウト
+        </button>
+      </div>
     </div>
   )
 }
