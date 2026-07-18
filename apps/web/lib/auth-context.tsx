@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from 'react'
 import {
+  getAuth,
   GoogleAuthProvider,
   onAuthStateChanged,
   signInWithPopup,
@@ -9,7 +10,7 @@ import {
   type User,
 } from 'firebase/auth'
 import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore'
-import { auth, db } from './firebase'
+import { app, db } from './firebase'
 
 interface AuthContextValue {
   user: User | null
@@ -38,20 +39,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
+  // getAuth は初期化時に API キーを検証するため、ビルド時のプリレンダーでは
+  // 呼ばずブラウザ実行時（effect・イベントハンドラ内）に限定する
   useEffect(() => {
-    return onAuthStateChanged(auth, (u) => {
+    return onAuthStateChanged(getAuth(app), (u) => {
       setUser(u)
       setLoading(false)
     })
   }, [])
 
   const signIn = async () => {
-    const cred = await signInWithPopup(auth, new GoogleAuthProvider())
+    const cred = await signInWithPopup(getAuth(app), new GoogleAuthProvider())
     await ensureUserDoc(cred.user)
   }
 
   const signOut = async () => {
-    await firebaseSignOut(auth)
+    await firebaseSignOut(getAuth(app))
   }
 
   return (
