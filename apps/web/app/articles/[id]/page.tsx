@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { getArticle } from '@/lib/firestore'
 import { TagBadge } from '@/components/TagBadge'
 import { FavoriteButton } from '@/components/FavoriteButton'
+import { Comments } from '@/components/Comments'
 
 export const revalidate = 3600
 
@@ -53,6 +54,8 @@ export default async function ArticlePage({ params }: { params: Promise<{ id: st
           ))}
         </div>
       )}
+
+      <Comments articleId={article.id} />
     </main>
   )
 }
