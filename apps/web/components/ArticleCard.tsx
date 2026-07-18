@@ -4,9 +4,9 @@ import { TagBadge } from './TagBadge'
 import { FavoriteButton } from './FavoriteButton'
 
 const importanceColor = {
-  high: 'bg-red-100 text-red-700',
-  medium: 'bg-yellow-100 text-yellow-700',
-  low: 'bg-gray-100 text-gray-600',
+  high: 'bg-red-50 text-red-600 ring-1 ring-red-200',
+  medium: 'bg-amber-50 text-amber-600 ring-1 ring-amber-200',
+  low: 'bg-gray-50 text-gray-500 ring-1 ring-gray-200',
 }
 
 function formatDate(dateStr: string): string {
@@ -21,19 +21,19 @@ function formatDate(dateStr: string): string {
 export function ArticleCard({ article }: { article: Article }) {
   const date = formatDate(article.publishedAt)
   return (
-    <div className="border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
+    <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md hover:border-gray-300 hover:-translate-y-0.5 transition-all duration-200">
       <div className="flex items-start justify-between gap-2 mb-2">
-        <Link href={`/articles/${article.id}`} className="font-medium text-gray-900 hover:text-blue-600 leading-snug">
+        <Link href={`/articles/${article.id}`} className="font-medium text-gray-900 hover:text-indigo-600 leading-snug transition-colors">
           {article.title}
         </Link>
         <div className="shrink-0 flex items-center gap-2">
-          <span className={`text-xs px-2 py-0.5 rounded-full ${importanceColor[article.importance]}`}>
+          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${importanceColor[article.importance]}`}>
             {article.importance}
           </span>
           <FavoriteButton article={article} />
         </div>
       </div>
-      <p className="text-sm text-gray-600 mb-3 line-clamp-2">{article.summary}</p>
+      <p className="text-sm text-gray-600 leading-relaxed mb-3 line-clamp-2">{article.summary}</p>
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-xs text-gray-400">{article.source}</span>
         {date && <span className="text-xs text-gray-300">{date}</span>}

@@ -15,7 +15,7 @@ const fetcher = (url: string) =>
   })
 
 const ArticleSkeleton = () => (
-  <div className="border border-gray-200 rounded-lg p-4 animate-pulse">
+  <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm animate-pulse">
     <div className="flex justify-between gap-2 mb-3">
       <div className="h-4 bg-gray-200 rounded w-3/4" />
       <div className="h-4 bg-gray-100 rounded w-12 shrink-0" />
@@ -53,16 +53,16 @@ export function ArticleList() {
         onChange={(e) => setQuery(e.target.value)}
         placeholder="タイトル・要約で検索..."
         aria-label="記事を検索"
-        className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm mb-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition-shadow"
       />
 
       <div className="flex gap-2 flex-wrap mb-6">
         <button
           onClick={() => { setSelectedSource(null); setSelectedImportance(null) }}
-          className={`text-xs px-3 py-1 rounded-full border transition-colors ${
+          className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
             isFiltered
-              ? 'bg-gray-900 text-white border-gray-900'
-              : 'border-gray-300 text-gray-600 hover:border-gray-500'
+              ? 'bg-indigo-600 text-white border-indigo-600'
+              : 'bg-white border-gray-200 text-gray-600 hover:border-indigo-300 hover:text-indigo-600'
           }`}
         >
           すべて
@@ -71,10 +71,10 @@ export function ArticleList() {
           <button
             key={imp}
             onClick={() => setSelectedImportance(selectedImportance === imp ? null : imp)}
-            className={`text-xs px-3 py-1 rounded-full border transition-colors ${
+            className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
               selectedImportance === imp
-                ? 'bg-gray-900 text-white border-gray-900'
-                : 'border-gray-300 text-gray-600 hover:border-gray-500'
+                ? 'bg-indigo-600 text-white border-indigo-600'
+                : 'bg-white border-gray-200 text-gray-600 hover:border-indigo-300 hover:text-indigo-600'
             }`}
           >
             {imp}
@@ -84,10 +84,10 @@ export function ArticleList() {
           <button
             key={s}
             onClick={() => setSelectedSource(selectedSource === s ? null : s)}
-            className={`text-xs px-3 py-1 rounded-full border transition-colors ${
+            className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
               selectedSource === s
-                ? 'bg-gray-900 text-white border-gray-900'
-                : 'border-gray-300 text-gray-600 hover:border-gray-500'
+                ? 'bg-indigo-600 text-white border-indigo-600'
+                : 'bg-white border-gray-200 text-gray-600 hover:border-indigo-300 hover:text-indigo-600'
             }`}
           >
             {s}

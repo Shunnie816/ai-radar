@@ -3,7 +3,7 @@ import { DailySummary } from '@/lib/types'
 
 export function DailySummaryCard({ summary }: { summary: DailySummary }) {
   return (
-    <Link href={`/daily/${summary.date}`} className="block border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
+    <Link href={`/daily/${summary.date}`} className="block bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md hover:border-gray-300 hover:-translate-y-0.5 transition-all duration-200">
       <div className="flex items-center justify-between mb-2">
         <span className="font-semibold text-gray-900">{summary.date}</span>
         <span className="text-xs text-gray-400">{summary.articleCount}件</span>
