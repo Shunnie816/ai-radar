@@ -11,6 +11,7 @@ import {
   orderBy,
   query,
   serverTimestamp,
+  updateDoc,
 } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/lib/auth-context'
@@ -21,13 +22,16 @@ import {
   normalizeCommentText,
 } from '@/lib/comments'
 
-// 記事詳細ページのコメント欄。一覧は誰でも閲覧でき、投稿・削除はログイン時のみ
+// 記事詳細ページのコメント欄。一覧は誰でも閲覧でき、投稿・編集・削除はログイン時のみ
 export function Comments({ articleId }: { articleId: string }) {
   const { user } = useAuth()
   const [comments, setComments] = useState<Comment[] | null>(null)
   const [loadFailed, setLoadFailed] = useState(false)
   const [draft, setDraft] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editDraft, setEditDraft] = useState('')
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
 
   useEffect(() => {
     const commentsQuery = query(
@@ -71,14 +75,35 @@ export function Comments({ articleId }: { articleId: string }) {
     }
   }
 
-  const handleDelete = (commentId: string) => {
-    if (!window.confirm('このコメントを削除しますか？')) return
-    deleteDoc(doc(db, 'articles', articleId, 'comments', commentId)).catch((err) =>
+  const startEdit = (c: Comment) => {
+    setEditingId(c.id)
+    setEditDraft(c.text)
+  }
+
+  const handleSaveEdit = async (commentId: string) => {
+    const text = normalizeCommentText(editDraft)
+    if (!text) return
+    try {
+      await updateDoc(doc(db, 'articles', articleId, 'comments', commentId), {
+        text,
+        updatedAt: serverTimestamp(),
+      })
+      setEditingId(null)
+    } catch (err) {
+      console.error('comment update failed', err)
+    }
+  }
+
+  const handleConfirmDelete = () => {
+    if (!deleteTargetId) return
+    deleteDoc(doc(db, 'articles', articleId, 'comments', deleteTargetId)).catch((err) =>
       console.error('comment delete failed', err),
     )
+    setDeleteTargetId(null)
   }
 
   const overLimit = draft.length > MAX_COMMENT_LENGTH
+  const editOverLimit = editDraft.length > MAX_COMMENT_LENGTH
 
   return (
     <section className="mt-10">
@@ -103,17 +128,57 @@ export function Comments({ articleId }: { articleId: string }) {
                 <span className="text-xs font-medium text-gray-700">{c.displayName}</span>
                 <span className="text-xs text-gray-400">
                   {c.createdAt?.toLocaleString('ja-JP', { dateStyle: 'short', timeStyle: 'short' })}
+                  {c.updatedAt && ' (編集済み)'}
                 </span>
-                {user?.uid === c.uid && (
-                  <button
-                    onClick={() => handleDelete(c.id)}
-                    className="ml-auto text-xs text-gray-400 hover:text-red-500 transition-colors"
-                  >
-                    削除
-                  </button>
+                {user?.uid === c.uid && editingId !== c.id && (
+                  <span className="ml-auto flex items-center gap-3">
+                    <button
+                      onClick={() => startEdit(c)}
+                      className="text-xs text-gray-400 hover:text-blue-500 transition-colors"
+                    >
+                      編集
+                    </button>
+                    <button
+                      onClick={() => setDeleteTargetId(c.id)}
+                      className="text-xs text-gray-400 hover:text-red-500 transition-colors"
+                    >
+                      削除
+                    </button>
+                  </span>
                 )}
               </div>
-              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{c.text}</p>
+              {editingId === c.id ? (
+                <div>
+                  <textarea
+                    value={editDraft}
+                    onChange={(e) => setEditDraft(e.target.value)}
+                    rows={3}
+                    className="w-full border border-gray-200 rounded-xl p-3 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-200 resize-y"
+                  />
+                  <div className="flex items-center justify-between mt-2">
+                    <span className={`text-xs ${editOverLimit ? 'text-red-500' : 'text-gray-400'}`}>
+                      {editDraft.length}/{MAX_COMMENT_LENGTH}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setEditingId(null)}
+                        className="text-sm px-4 py-1.5 rounded-full text-gray-500 hover:bg-gray-200 transition-colors"
+                      >
+                        キャンセル
+                      </button>
+                      <button
+                        onClick={() => handleSaveEdit(c.id)}
+                        disabled={editOverLimit || normalizeCommentText(editDraft) === null}
+                        className="text-sm px-4 py-1.5 rounded-full bg-blue-500 text-white hover:bg-blue-600 transition-colors disabled:bg-gray-200 disabled:text-gray-400"
+                      >
+                        保存
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{c.text}</p>
+              )}
             </li>
           ))}
         </ul>
@@ -143,6 +208,37 @@ export function Comments({ articleId }: { articleId: string }) {
         </form>
       ) : (
         <p className="mt-6 text-sm text-gray-400">コメントを投稿するにはログインしてください</p>
+      )}
+
+      {deleteTargetId && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4"
+          onClick={() => setDeleteTargetId(null)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="コメントの削除確認"
+            className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-sm text-gray-700 mb-6">このコメントを削除しますか？</p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setDeleteTargetId(null)}
+                className="text-sm px-4 py-1.5 rounded-full text-gray-500 hover:bg-gray-100 transition-colors"
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                className="text-sm px-4 py-1.5 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors"
+              >
+                削除する
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </section>
   )
