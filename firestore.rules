@@ -27,6 +27,12 @@ service cloud.firestore {
       allow read: if true;
       allow write: if false;
     }
+    // 自分のコメント一覧（/profile）用のコレクショングループクエリ。
+    // 直接パスの公開読み取りとは別に、横断クエリは本人のコメントのみ許可する
+    match /{path=**}/comments/{commentId} {
+      allow read: if request.auth != null && resource.data.uid == request.auth.uid;
+    }
+
     // ユーザープロフィール（表示名・アイコン）。書き込みは本人のみ
     match /users/{uid} {
       allow read: if true;
