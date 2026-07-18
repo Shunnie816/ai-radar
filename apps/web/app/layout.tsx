@@ -25,7 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <header className="sticky top-0 z-10 border-b border-gray-200/80 bg-white/85 backdrop-blur">
               <div className="max-w-3xl mx-auto px-4 h-12 flex items-center justify-between">
                 <Link href="/" className="font-bold tracking-tight text-gray-900 hover:text-indigo-600 transition-colors">
-                  <span aria-hidden="true" className="mr-1.5">📡</span>AI Radar
+                  AI Radar
                 </Link>
                 <nav className="flex items-center gap-4 text-sm text-gray-600">
                   <Link href="/articles" className="hover:text-gray-900 transition-colors">記事一覧</Link>
