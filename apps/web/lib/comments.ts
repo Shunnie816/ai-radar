@@ -14,6 +14,8 @@ export interface CommentData {
 export interface Comment extends CommentData {
   id: string
   createdAt: Date | null
+  // 編集済みの場合のみ設定される（「(編集済み)」表示に使う）
+  updatedAt: Date | null
 }
 
 // 投稿前のバリデーション: 前後の空白を除去し、空または上限超過なら null を返す
@@ -23,16 +25,23 @@ export function normalizeCommentText(raw: string): string | null {
   return text
 }
 
+type TimestampLike = { toDate?: () => Date }
+
+function toDate(value: TimestampLike | undefined): Date | null {
+  return typeof value?.toDate === 'function' ? value.toDate() : null
+}
+
 // Firestore から読み出したコメントドキュメントを表示用に変換する。
-// 欠落フィールドは既定値で補い、createdAt は Timestamp → Date に変換する
+// 欠落フィールドは既定値で補い、createdAt / updatedAt は Timestamp → Date に変換する
 export function commentFromDoc(id: string, data: unknown): Comment {
-  const d = data as Partial<CommentData> & { createdAt?: { toDate?: () => Date } }
+  const d = data as Partial<CommentData> & { createdAt?: TimestampLike; updatedAt?: TimestampLike }
   return {
     id,
     uid: d.uid ?? '',
     displayName: d.displayName ?? '',
     photoURL: d.photoURL ?? '',
     text: d.text ?? '',
-    createdAt: typeof d.createdAt?.toDate === 'function' ? d.createdAt.toDate() : null,
+    createdAt: toDate(d.createdAt),
+    updatedAt: toDate(d.updatedAt),
   }
 }
