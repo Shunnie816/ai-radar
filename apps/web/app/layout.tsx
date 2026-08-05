@@ -5,14 +5,33 @@ import { AuthProvider } from '@/lib/auth-context'
 import { ProfileProvider } from '@/lib/profile-context'
 import { FavoritesProvider } from '@/lib/favorites-context'
 import { UserMenu } from '@/components/UserMenu'
+import { Footer } from '@/components/Footer'
 import './globals.css'
 
 const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] })
 const geistMono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin'] })
 
+const SITE_URL = 'https://ai-radar.shunniehub.com'
+const SITE_NAME = 'AI Radar'
+const SITE_DESCRIPTION = 'AI関連ニュースを毎朝自動で収集・要約するパーソナルニュースレーダー'
+
 export const metadata: Metadata = {
-  title: 'AI Radar',
-  description: 'AI関連情報の自動収集・要約・蓄積システム',
+  metadataBase: new URL(SITE_URL),
+  title: SITE_NAME,
+  description: SITE_DESCRIPTION,
+  openGraph: {
+    type: 'website',
+    url: SITE_URL,
+    siteName: SITE_NAME,
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
+    locale: 'ja_JP',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -34,6 +53,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </div>
             </header>
             <div className="flex-1">{children}</div>
+            <Footer />
           </FavoritesProvider>
           </ProfileProvider>
         </AuthProvider>

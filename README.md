@@ -4,6 +4,9 @@ AI関連情報を毎日自動収集・要約し、トレンドを把握するた
 
 **URL**: https://ai-radar.shunniehub.com/
 
+[![CI](https://github.com/Shunnie816/ai-radar/actions/workflows/ci.yml/badge.svg)](https://github.com/Shunnie816/ai-radar/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 ---
 
 ## 機能
@@ -51,6 +54,83 @@ Firestore ─── Next.js (Firebase App Hosting) ─── ブラウザ
 
 ---
 
+## 技術スタック
+
+| レイヤー | 採用技術 |
+|---|---|
+| ワークフロー | Cloud Functions for Firebase (Node.js 22 / TypeScript) |
+| スケジュール | Cloud Scheduler（毎日 06:00 JST） |
+| AI | Claude API（`@anthropic-ai/sdk`） |
+| DB | Firebase Firestore |
+| 認証 | Firebase Authentication（Google ログイン） |
+| Web UI | Next.js 16 (App Router) / React 19 / Tailwind CSS v4 |
+| ホスティング | Firebase App Hosting |
+| テスト | Vitest |
+| CI/CD | GitHub Actions |
+
+---
+
+## ディレクトリ構成
+
+```
+ai-radar/
+├── apps/web/        # Next.js 16 (App Router) Web UI
+├── functions/       # Cloud Functions（収集・スコアリング・要約ワークフロー）
+├── scripts/         # 運用スクリプト（監視アラート設定など）
+└── docs/            # 設計・要件・運用ドキュメント
+```
+
+---
+
+## セットアップ（ローカル開発）
+
+### 前提
+
+- Node.js 22
+- Firebase プロジェクト（Firestore / Authentication / App Hosting を有効化）
+- [Anthropic API](https://console.anthropic.com/) のキー
+
+### 手順
+
+```bash
+git clone https://github.com/Shunnie816/ai-radar.git
+cd ai-radar
+```
+
+**Web UI**
+
+```bash
+cd apps/web
+npm ci
+cp ../../.env.example .env.local   # NEXT_PUBLIC_FIREBASE_* を自分のプロジェクトの値に置き換える
+npm run dev                        # http://localhost:3000
+```
+
+**Cloud Functions**
+
+```bash
+cd functions
+npm ci
+npm run build
+npm run serve                      # Firebase エミュレーターで起動
+```
+
+Claude API キーは Secret Manager で管理する。
+
+```bash
+firebase functions:secrets:set ANTHROPIC_API_KEY
+```
+
+**Firestore のルール・インデックス**
+
+```bash
+firebase deploy --only firestore
+```
+
+環境変数の一覧は [.env.example](.env.example) を参照。
+
+---
+
 ## コスト（月額・試算）
 
 | 項目 | 費用 |
@@ -59,4 +139,12 @@ Firestore ─── Next.js (Firebase App Hosting) ─── ブラウザ
 | Firebase（Firestore・App Hosting・Functions） | 無料枠内 |
 | **合計** | **~$3〜5** |
 
-※ 2段階モデル構成（#46）+ 一括採点（#52）後の試算。実測値の確認は #52 で継続中。
+※ 2段階モデル構成 + 一括採点への移行後の試算値。
+
+---
+
+## ライセンス
+
+[MIT License](LICENSE) © 2026 Shunnie816
+
+本リポジトリは個人利用を目的に作られたものです。取得元の各記事の著作権はそれぞれの発行元に帰属します。
