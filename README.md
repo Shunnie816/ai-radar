@@ -141,6 +141,8 @@ firebase deploy --only firestore
 
 ※ 2段階モデル構成 + 一括採点への移行後の試算値。
 
+Firebase 側は月 ¥500 の予算アラートを設定しており、¥100 / ¥250 / ¥500 の各時点でメール通知される（[docs/monitoring.md](docs/monitoring.md)）。
+
 ---
 
 ## ライセンス
