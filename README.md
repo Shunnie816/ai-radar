@@ -141,6 +141,11 @@ firebase deploy --only firestore
 
 ※ 2段階モデル構成 + 一括採点への移行後の試算値。
 
+コストは 2 系統で監視している（[docs/monitoring.md](docs/monitoring.md)）。
+
+- **Firebase（GCP）**: 月 ¥500 の予算アラート。¥100 / ¥250 / ¥500 の各時点でメール通知
+- **Claude API（Anthropic）**: 月間利用上限 $5、$4 到達時にメール通知
+
 ---
 
 ## ライセンス
