@@ -91,15 +91,35 @@ GCP の [Billing > 予算とアラート](https://console.cloud.google.com/billi
 
 平常時の GCP 利用料は無料枠内でほぼ ¥0 のため、最初のしきい値 ¥100 が事実上の「無料枠を超え始めた」サインになる。
 
-### ⚠️ この予算アラートの対象外
+### Claude API のコスト（Anthropic 側で別管理）
 
-**Claude API の利用料は Anthropic 側の課金であり、この GCP 予算アラートには含まれない。**
+**Claude API の利用料は Anthropic 側の課金であり、上記の GCP 予算アラートには含まれない。**
+README のコスト試算（月 ~$3〜5）の大半は Claude API 分なので、金額の大きい方は別系統で管理している。
 
-README のコスト試算（月 ~$3〜5）の大半は Claude API 分なので、金額の大きい方が監視対象外という点に注意する。
-Claude API 側の使用量上限・通知は [Anthropic Console](https://console.anthropic.com/) の Billing / Usage 設定で別途行う必要がある（未対応）。
+[Anthropic Console](https://console.anthropic.com/) 側の設定は以下のとおり。
 
-なお Claude API のコストは 1 日 1 回のバッチ実行に連動するため、Web の閲覧数が増えても直接は増えない。
-公開後に増えるのは Firestore の read と App Hosting の実行時間・帯域で、こちらは本予算アラートでカバーされる。
+| 項目 | 設定値 |
+|---|---|
+| 月間利用上限 | **$5**（上限到達で API 呼び出しが停止する） |
+| 通知しきい値 | **$4** 到達時にメール |
+| 対象範囲 | **Anthropic アカウント全体**（ai-radar 以外のアプリの利用分も合算される） |
+
+#### ⚠️ 上限に対してマージンが薄い
+
+ai-radar 単体の試算が月 ~$3〜5 なのに対し、上限は他アプリと合算で $5。
+**ai-radar 単体でも上限に達しうる**うえ、他アプリの利用が増えれば ai-radar の実行が先に止まる可能性がある。
+
+上限に到達して Claude API がエラーを返した場合、dailyFeed はスコアリング・要約が全滅して例外を投げるため、
+[1. dailyFeed バッチの失敗検知](#1-dailyfeed-バッチの失敗検知) の ERROR アラートでメール通知される。
+**コスト起因の停止も既存のバッチ失敗アラートで検知できる**が、通知を受けた際は Anthropic Console の
+使用量も確認して原因を切り分けること。
+
+$4 の通知が毎月届くようであれば、上限額の引き上げか [Issue #52（コスト削減）](https://github.com/Shunnie816/ai-radar/issues/52) の対応を検討する。
+
+### 公開後に増えるのはどちら側か
+
+Claude API のコストは 1 日 1 回のバッチ実行に連動するため、**Web の閲覧数が増えても直接は増えない**。
+公開後に増えるのは Firestore の read と App Hosting の実行時間・帯域で、こちらは GCP 予算アラートでカバーされる。
 
 ### 通知が届いたら
 
