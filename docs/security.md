@@ -15,7 +15,7 @@ Firebase Web SDK の API キーは**プロジェクトを識別する公開情�
 | 層 | 内容 | 状態 |
 |---|---|---|
 | Firestore セキュリティルール | 誰が何を読み書きできるか | 適用済み（[後述](#2-firestore-セキュリティルール)） |
-| Firebase Auth の承認済みドメイン | どのドメインからログインできるか | 要棚卸し（[後述](#3-firebase-auth-の承認済みドメイン)） |
+| Firebase Auth の承認済みドメイン | どのドメインからログインできるか | 確認済み（[後述](#3-firebase-auth-の承認済みドメイン)） |
 | API キーの API 制限 | キーでどの API を叩けるか | 適用済み（本章） |
 
 ### API 制限（適用済み）
@@ -79,13 +79,23 @@ gcloud services api-keys update <KEY_NAME> \
 
 ## 3. Firebase Auth の承認済みドメイン
 
-CLI（Identity Toolkit Admin API）は権限の都合で参照できなかったため、[Firebase コンソール](https://console.firebase.google.com/project/ai-radar-92cf1/authentication/settings) の **Authentication > Settings > 承認済みドメイン**で確認する。
+許可されたドメインからのみ Google ログインを実行できる。ここに第三者のドメインが混ざっていると、そのサイトから本プロジェクトの認証を利用されうる。
 
-必要なのは以下のみ。それ以外が残っていれば削除する。
+### 棚卸し結果（2026-08-06 時点）
 
-- `ai-radar.shunniehub.com`（本番）
+登録されているのは以下のみで、**不要なドメインはなし**。削除対応は不要だった。
+
+- `ai-radar.shunniehub.com`（本番のカスタムドメイン）
 - `localhost`（ローカル開発）
-- App Hosting のデフォルトドメイン（実際に使用しているもの）
+- Firebase / App Hosting のデフォルトドメイン
+
+### 確認手順
+
+CLI（Identity Toolkit Admin API）は権限エラー（403）で参照できなかったため、コンソールで確認する。
+
+[Firebase コンソール](https://console.firebase.google.com/project/ai-radar-92cf1/authentication/settings) > **Authentication > Settings > 承認済みドメイン**
+
+カスタムドメインの追加・変更時や、外部サービスとの連携を試した後は、不要なドメインが残っていないか見直すこと。
 
 ---
 
