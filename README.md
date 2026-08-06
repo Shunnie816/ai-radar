@@ -17,6 +17,7 @@ AI関連情報を毎日自動収集・要約し、トレンドを把握するた
 - **閲覧 UI**: ダッシュボード・日次サマリー・記事一覧（キーワード検索・重要度/ソースフィルタ）・記事詳細
 - **アカウント機能**: Google ログイン・記事のお気に入り・コメント（投稿/編集/削除）・プロフィール（表示名・アイコン設定、自分の活動一覧）
 - **運用監視**: dailyFeed の失敗を Cloud Monitoring ログベースアラートでメール通知（[docs/monitoring.md](docs/monitoring.md)）
+- **セキュリティ**: Firestore セキュリティルール + API キーの API 制限による多層防御（[docs/security.md](docs/security.md)）
 
 ### RSSソース
 
